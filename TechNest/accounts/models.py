@@ -15,7 +15,6 @@ class User(AbstractUser):
         null=False
     )
     address = models.CharField(max_length=256, blank=True, null=True)
-    district = models.ForeignKey('locations.District',on_delete=models.SET_NULL, blank=True, null=True)
     province = models.ForeignKey('locations.Province',on_delete=models.SET_NULL, blank=True, null=True)
     date_joined=models.DateField(auto_now_add=True,null=True)
     dob = models.DateField(blank=True, null=True)
@@ -26,7 +25,7 @@ class User(AbstractUser):
     class Meta:
         db_table = "user"
 
-class Supplier(User):
+class SupplierApproved(User):
 
     class Meta:
         proxy = True

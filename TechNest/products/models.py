@@ -9,6 +9,23 @@ class Category(BaseModel):
         verbose_name = "Category"
         verbose_name_plural = "Categories" 
 
+    def __str__(self):
+        return self.type 
+
+
+class Option(models.Model):
+    type=models.CharField(max_length=30, null=True)
+    category = models.ForeignKey('Category', null=True, blank=True,related_name='options',on_delete=models.PROTECT)
+
+    class Meta:
+        unique_together = ('type', 'category') 
+
+class OptionValue(models.Model):
+    value = models.CharField(max_length=30)
+    option = models.ForeignKey('Option', related_name='option_values',  on_delete=models.PROTECT)
+    class Meta:
+        unique_together = ('value', 'option') 
+
 class Product(BaseModel):
     name = models.CharField(max_length=50,null=False)
     status = models.CharField(max_length=20, choices=ProductStatus,default=ProductStatus.DEPENDING)
@@ -26,12 +43,6 @@ class Product(BaseModel):
         related_name='products',
         null=True
     )
-    district = models.ForeignKey(
-        "locations.District",
-        on_delete=models.SET_NULL,
-        related_name='products',
-        null=True
-    )
     ward = models.ForeignKey(
         "locations.Ward",
         on_delete=models.SET_NULL,
@@ -41,26 +52,14 @@ class Product(BaseModel):
     address = models.CharField(max_length=256, null=True)
     is_deleted = models.BooleanField(default=False)
 
-class Option(models.Model):
-    type=models.CharField(max_length=30, null=True)
-    product = models.ForeignKey('Product',related_name='options',on_delete=models.CASCADE)
 
-    class Meta:
-        unique_together = ('type', 'product') 
 
-class OptionValue(models.Model):
-    value = models.CharField(max_length=30)
-    option = models.ForeignKey('Option', related_name='option_values',  on_delete=models.CASCADE)
-    class Meta:
-        unique_together = ('value', 'option') 
-
-class ProductVariant(models.Model):
+class ProductVariant(BaseModel):
     price = models.FloatField(default=0.0)
     product = models.ForeignKey('Product',related_name='product_variant', on_delete=models.PROTECT)
     stock = models.PositiveIntegerField(default=0)
     sku = models.CharField(max_length=20, null=True, unique=True)
-    is_active = models.BooleanField(default=True)
-
+# todo: thêm giá của mỗi value khi người dùng truyền vào
 class VariantOptionValue(models.Model):
     option_value=models.ForeignKey('OptionValue',on_delete=models.CASCADE)
     product_variant  = models.ForeignKey('ProductVariant',on_delete=models.CASCADE)

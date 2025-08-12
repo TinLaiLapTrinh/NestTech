@@ -13,9 +13,11 @@ from datetime import timedelta
 from pathlib import Path
 import os
 import cloudinary
-
+from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+from django.templatetags.static import static
 
 # REST_FRAMEWORK = {
 #     'DEFAULT_RENDERER_CLASSES': [
@@ -37,8 +39,16 @@ ALLOWED_HOSTS = []
 
 # Application definition
 
+
+STATICFILES_DIRS = [
+    # BASE_DIR / "static",  # nếu có thư mục static trong dự án
+]
+
+STATIC_ROOT = BASE_DIR / "staticfiles"  # để collectstatic khi deploy
+
 INSTALLED_APPS = [
     "unfold",
+    "unfold.contrib.inlines",
     "unfold.contrib.filters",  # Bộ lọc nâng cao (không bắt buộc)
     "unfold.contrib.forms",  # Form nâng cao (không bắt buộc)
     
@@ -101,7 +111,7 @@ WSGI_APPLICATION = 'TechNest.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'saledevicedb',
+        'NAME': 'saledevicedb01',
         'USER': 'root',
         'PASSWORD': 'VuTrongTin12092004@',
         'HOST': 'localhost', 
@@ -192,3 +202,109 @@ OAUTH2_PROVIDER = {
 
 CLIENT_ID = os.getenv("OATUH2_CLIENT_ID")
 CLIENT_SECRET = os.getenv("OATUH2_CLIENT_SECRET")
+UNFOLD = {
+    "SITE_TITLE": "TechNest Admin",
+    "SITE_HEADER": "TechNest",
+    "SITE_URL": "/",
+    "SITE_ICON": None,
+    "SIDEBAR": {
+        "navigation": [
+             {
+                "title": _("Token Manager"),
+                "icon": "token",
+                "items": [
+                    {
+                        "title": _("Token Manager"),
+                        "icon": "token",
+                        "link": reverse_lazy("admin:index"),
+                    },
+                ],
+            },
+            {
+                "title": _("Home"),
+                "icon": "home",
+                "items": [
+                    {
+                        "title": _("Dashboard"),
+                        "icon": "dashboard",
+                        "link": reverse_lazy("technest_admin:index"),
+                    },
+                ],
+            },
+             {
+                "title": _("User Manager"),
+                "separator": True,
+                "items": [
+                    {
+                        "icon": "person",
+                        "title": _("Users"),
+                        "link": reverse_lazy("technest_admin:accounts_user_changelist"),
+                    },
+                    {
+                        "icon": "person_add",
+                        "title": _("Supplier approved"),
+                        "link": reverse_lazy(
+                            "technest_admin:accounts_supplierapproved_changelist"
+                        ),
+                    },
+                ]
+            },
+            
+            {
+                "title": _("Product Attributes"),
+                "separator": True,
+                "items": [
+                    {
+                        "icon": "category",
+                        "title": _("Category"),
+                        "link": reverse_lazy("technest_admin:products_category_changelist"),
+                    },
+                    {
+                        "icon": "tune", 
+                        "title": _("Options"),
+                        "link": reverse_lazy("technest_admin:products_option_changelist"),
+                    },  
+                    {
+                        "icon": "add_shopping_cart", 
+                        "title": _("Product"),
+                        "link": reverse_lazy("technest_admin:products_product_changelist"),
+                    }
+                    
+                ]
+            }
+           
+            # Add more sections as needed
+        ],
+    },
+    "STYLES": [
+        lambda request: static("css/styles.css"),
+    ],
+    "COLORS": {
+        "base": {
+            "50": "249 250 251",
+            "100": "243 244 246",
+            "200": "229 231 235",
+            "300": "209 213 219",
+            "400": "156 163 175",
+            "500": "107 114 128",
+            "600": "75 85 99",
+            "700": "55 65 81",
+            "800": "31 41 55",
+            "900": "17 24 39",
+            "950": "3 7 18",
+        },
+        "primary": {
+            "50": "250 245 255",
+            "100": "206 250 254",
+            "200": "162 244 253",
+            "300": "83 234 253",
+            "400": "0 211 242",
+            "500": "0 184 219",
+            "600": "0 146 184",
+            "700": "0 117 149",
+            "800": "0 95 120",
+            "900": "16 78 100",
+            "950": "5 51 69",
+        },
+    },
+}
