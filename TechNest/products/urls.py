@@ -1,14 +1,20 @@
-
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+# from rest_framework_nested import routers
 from . import views
-route = DefaultRouter()
-route.register("list_product", views.ProductViewSet,basename="product")
-route.register("products", views.CreateCompleteProductViewSet,  basename="product-with-all-component")
-route.register('category',views.CategoryViewSet,basename='category')
+router = DefaultRouter()
 
 
+router.register("product", views.ProductViewSet, basename="product")
+router.register("category", views.CategoryViewSet, basename="category")
+# router.register(r"product", views.ProductComponentViewSet, basename="product-component")
+
+# Nested router cho product-component
+# product_router = routers.NestedDefaultRouter(router, "product", lookup="product")
+# product_router.register("component", views.ProductComponentViewSet, basename="product-component")
 
 urlpatterns = [
-    path("",include(route.urls))
+    path("", include(router.urls)),
+    path("product/<int:product_pk>/variant/", views.ProductComponentViewSet.as_view({'get': 'list', 'post': 'create'}), name="product-component-list"),
+    path("product/<int:product_pk>/variant/<int:pk>/", views.ProductComponentViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}), name="product-component-detail"),
 ]

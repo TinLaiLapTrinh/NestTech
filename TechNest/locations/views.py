@@ -1,8 +1,11 @@
 from rest_framework import generics, mixins, viewsets
 
-from locations.serializers import DistrictSerializer, ProvinceSerializer, WardSerializer
+from locations.serializers import  ProvinceSerializer, WardSerializer
 
-from .models import District, Province, Ward
+from .models import Province, Ward
+
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 
 class ProvinceViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
@@ -14,38 +17,12 @@ class ProvinceViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
     queryset = Province.objects.all()
     serializer_class = ProvinceSerializer
 
-
-class DistrictViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
-    """
-    ViewSet cho `District`:
-    - Trả về danh sách các quận/huyện của một tỉnh dựa trên `province_id`
-    - Nếu không có `province_id`, trả về tất cả các quận/huyện
-    """
-
-    queryset = District.objects.all()
-    serializer_class = DistrictSerializer
-
-    def list(self, request, *args, **kwargs):
-        province_id = request.query_params.get("province_id")
-        if province_id:
-            self.queryset = self.queryset.filter(province_id=province_id)
-
-        return super().list(request, *args, **kwargs)
+    @action(detail=True, methods=['get'], url_path='wards')
+    def wards(self, request, pk=None):
+        wards = Ward.objects.filter(province_id=pk)
+        serializer = WardSerializer(wards, many=True)
+        return Response(serializer.data)
 
 
-class WardViewSet(viewsets.ViewSet, generics.ListAPIView):
-    """
-    ViewSet cho `Ward`:
-    - Trả về danh sách các phường/xã của một quận/huyện dựa trên `district_id`
-    - Nếu không có `district_id`, trả về tất cả các phường/xã
-    """
 
-    queryset = Ward.objects.all()
-    serializer_class = WardSerializer
 
-    def list(self, request, *args, **kwargs):
-        district_id = request.query_params.get("district_id")
-        if district_id:
-            self.queryset = self.queryset.filter(district_id=district_id)
-
-        return super().list(request, *args, **kwargs)

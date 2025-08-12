@@ -1,19 +1,29 @@
 from django.contrib import admin
 from admin_site.site import technest_admin_site
-from products.models import Category, Product
+from products.models import Category, Product, Option,OptionValue
 from django.core.exceptions import ValidationError
 from django.utils.html import format_html
 from django.contrib import messages
 from admin_site.components import option_display
 from utils.choice import ProductStatus
 from unfold.admin import ModelAdmin
+from unfold.contrib.inlines.admin import TabularInline, StackedInline
+
+
+
+class OptionValueInline(TabularInline):
+    model = OptionValue
+    extra = 1
+
+class OptionInline(TabularInline): 
+    model = Option
+    extra = 1
+    inlines = [OptionValueInline]  
 
 class CategoryAdmin(ModelAdmin):
-    list_display = ['id', 'active', 'created_at', 'type','descriptions','last_update_at']
-    # search_fields = ['subject']
+    list_display = ['id', 'created_at', 'type', 'descriptions']
     list_filter = ['id', 'created_at']
-    # list_editable = ['subject']
-    # readonly_fields = ['image_view']
+    inlines = [OptionInline]
 
     def delete_model(self, request, obj):
         if obj.products.exists():
@@ -23,21 +33,37 @@ class CategoryAdmin(ModelAdmin):
                 level=messages.ERROR
             )
         else:
-            super().delete_model(request, obj)
+            super().delete_model(request, obj)      
 
+class OptionAdmin(ModelAdmin):
+    list_display = ['id', 'type', 'category']
+    search_fields = [
+        'id',                  
+        'type',                
+        'category__id',       
+        'category__type'      
+    ]
+    inlines = [OptionValueInline]
 
 class ProductApproved(ModelAdmin):
-    list_display = ['name','owner','category','status_display']
+    list_display = ['name','owner','category_name','status_display']
     readonly_fields = ['image_gallery']
     fieldsets = [
         ("Status", {"fields": ["status"]}),
-        ("Detail", {"fields": ["name", "owner"]}),
-        ("Location", {"fields": ["address", "province", "district", "ward"]}),
+        ("Detail", {"fields": ["name", "owner","category"]}),
+        ("Location", {"fields": ["address", "province", "ward"]}),
         ("Images", {"fields": ["image_gallery"]}),
     ]
 
     
-
+    def category_name(self, obj):
+        """
+        Hiển thị tên category với xử lý trường hợp None
+        """
+        if obj.category is None:  
+            return "Không có danh mục"
+        return obj.category.type  
+    category_name.short_description = "Danh mục"
 
     def image_gallery(self, product: Product):
         """Hiển thị tất cả ảnh trong trang chi tiết"""
@@ -74,7 +100,9 @@ class ProductApproved(ModelAdmin):
     status_display.short_description = "Status"
 
 
+technest_admin_site.register(Option, OptionAdmin)
 technest_admin_site.register(Category, CategoryAdmin)
 technest_admin_site.register(Product, ProductApproved)
+
 
 

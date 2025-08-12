@@ -10,6 +10,10 @@ class IsProductOwner(IsAuthenticated):
         is_authenticated = super().has_permission(request, view)
         return is_authenticated and product_object.owner == request.user
     
+class IsVariantOwner(permissions.IsAuthenticated):
+    def has_object_permission(self, request, view, obj):
+        is_authenticated = super().has_permission(request,view)
+        return is_authenticated and obj.product.owner == request.user
 
 
 # class IsRelatedToOwnedProduct(BasePermission):

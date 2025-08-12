@@ -18,7 +18,7 @@ class Order(BaseModel):
 
         # Nếu chưa có toạ độ, lấy toạ độ từ địa chỉ
         if not self.latitude or not self.longitude:
-            address = f"{self.address}, {self.ward}, {self.district}, {self.province}, Việt Nam"
+            address = f"{self.address}, {self.ward}, {self.province}, Việt Nam"
             self.latitude, self.longitude = get_coordinates(address)
 
         # Cập nhật toạ độ khi địa chỉ thay đổi
@@ -27,10 +27,9 @@ class Order(BaseModel):
             if (
                 self.address != old_property.address
                 or self.province != old_property.province
-                or self.district != old_property.district
                 or self.ward != old_property.ward
             ):
-                address = f"{self.address}, {self.ward}, {self.district}, {self.province}, Việt Nam"
+                address = f"{self.address}, {self.ward},  {self.province}, Việt Nam"
                 self.latitude, self.longitude = get_coordinates(address)
 
         super().save(*args, **kwargs)

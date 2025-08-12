@@ -5,14 +5,18 @@ class TechNestAdminSite(UnfoldAdminSite):
     site_header = "TechNest Admin"
     site_title = "TechNest Admin Portal"
     index_title = "Welcome to TechNest Admin Portal"
+   
+    def get_app_list(self, request, app_label=None):
+        """
+        Override phương thức get_app_list với đầy đủ tham số
+        """
+        app_list = super().get_app_list(request, app_label)
+        
 
+        
+        return app_list
     
-    # def get_urls(self):
-    #     urls = super().get_urls()
-    #     custom_urls = [
-    #         path('renthub-stats/', self.admin_view(self.renthub_stats), name='renthub_stats'),
-    #     ]
-    #     return custom_urls + urls
+
 
    
-technest_admin_site = TechNestAdminSite(name="renthub_admin")
+technest_admin_site = TechNestAdminSite(name="technest_admin")

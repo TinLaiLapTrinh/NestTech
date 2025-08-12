@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import District, Province, Ward
+from .models import  Province, Ward
 
         
 class ProvinceSerializer(serializers.ModelSerializer):
@@ -13,14 +13,7 @@ class ProvinceSerializer(serializers.ModelSerializer):
         fields = '__all__'
         
 
-class DistrictSerializer(serializers.ModelSerializer):
-    """
-    Serializer cho District
-    """
 
-    class Meta:
-        model = District
-        fields = ["code", "full_name"]
         
         
 class WardSerializer(serializers.ModelSerializer):
