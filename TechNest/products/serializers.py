@@ -85,7 +85,6 @@ class ProductSerializer(serializers.ModelSerializer):
             "category",
             "min_price",
             "max_price",
-            "sold_quantity",
             "images",
             "upload_images",
             "province",
@@ -96,6 +95,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'owner': {'read_only': True}, 
             'status': {'read_only': True}, 
         }
+    
     def validate(self, data):
         name = data.get('name', '').strip()
         description = data.get('description', '').strip()
