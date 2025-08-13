@@ -16,8 +16,8 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView):
         return [permissions.AllowAny()]
     
     def get_serializer_class(self):
-        # if self.action in ["landlord_register"]:
-        #     return LandlordRegistrationSerializer
+        if self.action in ["supplier_register"]:
+            return serializers.SupplierRegister
         if self.action in ["customer_register"]:
             return serializers.CustomerRegister
 
@@ -30,9 +30,15 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView):
     
     @action(methods=["post"],detail=False,url_path="customer-register")
     def customer_register(self,request):
-        serializer = self.get_serializer_class(data = request.data)
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+    @action(methods=["post"],detail=False, url_path="supplier-register")
+    def supplier_register(self,request):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
