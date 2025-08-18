@@ -13,18 +13,7 @@ class Category(BaseModel):
         return self.type 
 
 
-class Option(models.Model):
-    type=models.CharField(max_length=30, null=True)
-    category = models.ForeignKey('Category', null=True, blank=True,related_name='options',on_delete=models.PROTECT)
 
-    class Meta:
-        unique_together = ('type', 'category') 
-
-class OptionValue(models.Model):
-    value = models.CharField(max_length=30)
-    option = models.ForeignKey('Option', related_name='option_values',  on_delete=models.PROTECT)
-    class Meta:
-        unique_together = ('value', 'option') 
 
 class Product(BaseModel):
     name = models.CharField(max_length=50,null=False)
@@ -52,17 +41,36 @@ class Product(BaseModel):
     address = models.CharField(max_length=256, null=True)
     is_deleted = models.BooleanField(default=False)
 
+# thêm 1 trường yêu cầu hình ảnh vào đây để khi người dùng ấn là có thì sẽ hiển thị ô thêm ảnh
+class Option(models.Model):
+    type=models.CharField(max_length=30, null=True)
+    product = models.ForeignKey('Product', null=True, blank=True,related_name='options',on_delete=models.CASCADE)
+    image_require = models.BooleanField(default=False)
 
+    class Meta:
+        unique_together = ('type', 'product') 
+
+    def __str__(self):
+        return self.type 
+class OptionValue(models.Model):
+    value = models.CharField(max_length=30)
+    option = models.ForeignKey('Option', related_name='option_values',  on_delete=models.PROTECT)
+    class Meta:
+        unique_together = ('value', 'option') 
+
+class OptionValueImage(Image):
+    option_value = models.OneToOneField('OptionValue',related_name='images', on_delete=models.CASCADE)
+    
 
 class ProductVariant(BaseModel):
     price = models.FloatField(default=0.0)
     product = models.ForeignKey('Product',related_name='product_variant', on_delete=models.PROTECT)
     stock = models.PositiveIntegerField(default=0)
     sku = models.CharField(max_length=20, null=True, unique=True)
-# todo: thêm giá của mỗi value khi người dùng truyền vào
+    
 class VariantOptionValue(models.Model):
-    option_value=models.ForeignKey('OptionValue',on_delete=models.CASCADE)
-    product_variant  = models.ForeignKey('ProductVariant',on_delete=models.CASCADE)
+    option_value=models.ForeignKey('OptionValue',related_name="variant_option_values",on_delete=models.CASCADE)
+    product_variant  = models.ForeignKey('ProductVariant',related_name="variant_option_values",on_delete=models.CASCADE)
     class Meta:
         unique_together = ('option_value', 'product_variant') 
         indexes = [
@@ -91,13 +99,7 @@ class ProductImage(Image):
 class RateImage(Image):
     rate = models.ForeignKey('Rate', related_name='images',on_delete=models.CASCADE)
 
-class Cart(BaseModel):
-    owner = models.OneToOneField('accounts.User', related_name='cart', on_delete=models.CASCADE)
 
-class ProductCartItem(BaseModel):
-    cart = models.ForeignKey('Cart', related_name='product_cart', on_delete=models.CASCADE)
-    product_variant = models.ForeignKey('ProductVariant',related_name='product_cart',on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField(default=1)
 
 
 

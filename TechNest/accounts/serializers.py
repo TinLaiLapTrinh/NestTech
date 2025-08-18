@@ -149,7 +149,7 @@ class SupplierRegister(serializers.ModelSerializer):
         if len(value) > 10:
             raise serializers.ValidationError("Vượt quá số lượng ảnh! (Tối đa là 10)")
 
-        max_size = 10 * 1024 * 1024  # 10MB
+        max_size = 10 * 1024 * 1024 
         allowed_types = ["image/jpeg", "image/png", "image/jpg"]
 
         for image in value:

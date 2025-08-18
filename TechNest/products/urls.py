@@ -5,7 +5,7 @@ from . import views
 router = DefaultRouter()
 
 
-router.register("product", views.ProductViewSet, basename="product")
+router.register("products", views.ProductViewSet, basename="product")
 router.register("category", views.CategoryViewSet, basename="category")
 # router.register(r"product", views.ProductComponentViewSet, basename="product-component")
 
@@ -15,6 +15,6 @@ router.register("category", views.CategoryViewSet, basename="category")
 
 urlpatterns = [
     path("", include(router.urls)),
-    path("product/<int:product_pk>/variant/", views.ProductComponentViewSet.as_view({'get': 'list', 'post': 'create'}), name="product-component-list"),
-    path("product/<int:product_pk>/variant/<int:pk>/", views.ProductComponentViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}), name="product-component-detail"),
+    path("product/<int:product_pk>/variant/", views.ProductVariantViewSet.as_view({'get': 'list', 'post': 'create'}), name="product-component-list"),
+    path("product/<int:product_pk>/variant/<int:pk>/", views.ProductVariantViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}), name="product-component-detail"),
 ]

@@ -5,20 +5,21 @@ from accounts.perm import IsSupplier
 import products.perms as perms 
 from rest_framework import mixins, parsers, status, viewsets
 from rest_framework import viewsets, generics, status, parsers, permissions
-from .models import (Product,ProductCartItem
-                    ,ProductImage,ProductStatus,
+from .models import (Product,ProductImage,ProductStatus,
                     ProductVariant,Option,OptionValue,
                     VariantOptionValue)
 from .serializers import (CategoryListSerializer,
-                          CategoryDetailSerializer,
                         ProductSerializer,
-                        ProductWithComponentsSerializer,
                         ProductVariantGetSerializer,
                         ProductVariantUpdateSerializer,
-                        ProductVariantCreateSerializer,
                         OptionGetSerializer,
+                        OptionSerializer,
+                        ProductOptionSetupSerializer,
                         OptionValueGetSerializer,
-                        ProductVariantCreateSerializer)
+                        OptionValueSerializer,
+                        ProductVariantSerializer,
+                        ProductListSerializer,
+                        ProductDetailSerializer)
 from .models import Category
 from rest_framework.response import Response
 from django.db.models import Q
@@ -35,10 +36,11 @@ class CategoryViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveA
                 'options__option_values' 
             )
         return Category.objects.all()
-    def get_serializer_class(self):
-        if self.action == 'retrieve':
-            return CategoryDetailSerializer
-        return CategoryListSerializer
+    serializer_class = CategoryListSerializer
+    # def get_serializer_class(self):
+    #     if self.action == 'retrieve':
+    #         return CategoryDetailSerializer
+    #     return CategoryListSerializer
 
 class OptionViewSet(viewsets.ReadOnlyModelViewSet):  
     queryset = Option.objects.all()
@@ -56,8 +58,8 @@ class ProductViewSet(viewsets.GenericViewSet,
     mixins.CreateModelMixin,
     mixins.RetrieveModelMixin,
     mixins.DestroyModelMixin,
-    mixins.UpdateModelMixin):
-    serializer_class = ProductSerializer
+    mixins.UpdateModelMixin,
+    ):
     parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
     pagination_class = ProductPaginator
 
@@ -65,18 +67,28 @@ class ProductViewSet(viewsets.GenericViewSet,
         return Product.objects.filter(active=True, is_deleted=False)
 
     def get_serializer_class(self):
-        if self.action == 'create':
+        if self.action in ['create','update', 'partial_update']:
             return ProductSerializer
+        elif self.action == 'option_setup':
+            return ProductOptionSetupSerializer
         elif self.action == 'add_variant':
-            return ProductVariantCreateSerializer
+            return ProductVariantSerializer
+        # elif self.action=='add_option':
+        #     return OptionSerializer
+        elif self.action in ['my_products','list']:
+            return ProductListSerializer
+        elif self.action =='retrieve':
+            return ProductDetailSerializer
+        
         return ProductSerializer  
 
     def get_permissions(self):
         if(self.action in ["create"]):
             return [IsSupplier()]
-        elif(self.action in["add_variant","update","partial_update","destroy"]):
+        elif(self.action in["add_variant","update","partial_update","destroy","add_option"]):
             return[perms.IsProductOwner()]
         return [AllowAny()]
+    
     def list(self, request):
         search = request.query_params.get("search")
         category_id = request.query_params.get("category")
@@ -113,6 +125,19 @@ class ProductViewSet(viewsets.GenericViewSet,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+
+        data = request.data.copy()
+        if 'owner' in data:
+            data.pop('owner')
+
+        serializer = self.get_serializer(instance, data=data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
+    
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         instance.is_deleted = True
@@ -120,13 +145,38 @@ class ProductViewSet(viewsets.GenericViewSet,
         instance.save(update_fields=["is_deleted", "active"])
         return Response({"message": "Product soft deleted successfully!"}, status=status.HTTP_200_OK)
     
+    @action(detail=True, methods=['post'], url_path='option-setup')
+    def option_setup(self, request, pk=None):
+        try:
+            product = self.get_object()
+        except:
+            return Response({"detail": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
+        # print(request.data)
+        serializer = self.get_serializer(data=request.data, context={'product': product})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": "Option added successfully!"}, status=status.HTTP_201_CREATED)
+    
+
+    # @action(detail=True,methods=['post'], url_path='add-option')
+    # def add_option(self,request,pk=None):
+    #     try:
+    #         product = self.get_object()
+    #     except:
+    #         return Response({"detail":"product not found"},status=status.HTTP_404_NOT_FOUND)
+    #     serializer = self.get_serializer(data=request.data, context={'product': product})
+    #     if serializer.is_valid():
+    #         variant = serializer.save()
+    #         return Response({"message": "Option added successfully!", "variant_id": variant.id}, status=status.HTTP_201_CREATED)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
     @action(detail=True, methods=['post'], url_path='add-variant')
     def add_variant(self,request,pk=None):
         try:
-            # Kiểm tra quyền từ permission khai báo ở trên
             product = self.get_object()
         except Product.DoesNotExist:
             return Response({"detail": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
+        print(request.data)
 
         serializer = self.get_serializer(data=request.data, context={'product': product})
         if serializer.is_valid():
@@ -144,10 +194,20 @@ class ProductViewSet(viewsets.GenericViewSet,
             return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(deleted_products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-  
+    
+    @action(detail=False, methods=['get'],url_path='my-product')
+    def my_products(self,request):
+        product_owner = request.user
+        products = Product.objects.filter(is_deleted=False, owner=product_owner)
+        page = self.paginate_queryset(products)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(products, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
 
-class ProductComponentViewSet(viewsets.GenericViewSet,
+class ProductVariantViewSet(viewsets.GenericViewSet,
                               mixins.ListModelMixin,          
                               mixins.RetrieveModelMixin,
                               mixins.UpdateModelMixin,
