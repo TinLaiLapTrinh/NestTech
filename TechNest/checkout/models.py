@@ -15,7 +15,6 @@ class Order(BaseModel):
         """
         Lưu toạ độ của dãy trọ dựa trên địa chỉ của nó.
         """
-
         # Nếu chưa có toạ độ, lấy toạ độ từ địa chỉ
         if not self.latitude or not self.longitude:
             address = f"{self.address}, {self.ward}, {self.province}, Việt Nam"
@@ -36,15 +35,20 @@ class Order(BaseModel):
 
 class OrderDetail(BaseModel):
     product = models.ForeignKey('products.ProductVariant',related_name='order_detail',on_delete=models.CASCADE)
-    stock = models.PositiveIntegerField(null=False)
+    quantity = models.PositiveIntegerField(null=False)
+    price = models.FloatField()
     distance = models.FloatField(null=False)
     delivery_charge = models.FloatField(null=False)
     delivery_status = models.TextField(choices=DeliveryStatus, default=DeliveryStatus.PENDING)
 
 class ShoppingCart(models.Model):
-    owner = models.ForeignKey('accounts.User',related_name='shopping_cart',on_delete=models.CASCADE,limit_choices_to={'user_type':UserType.CUSTOMER})
+    owner = models.OneToOneField('accounts.User',related_name='shopping_cart',
+                              on_delete=models.CASCADE,
+                              limit_choices_to={'user_type':UserType.CUSTOMER})
 
 class ShoppingCartItem(BaseModel):
     product = models.ForeignKey('products.ProductVariant',related_name='shopping_cart_item',on_delete=models.CASCADE)
-    stock = models.PositiveIntegerField(null=False)
+    quantity = models.PositiveIntegerField(null=False)
     shopping_cart = models.ForeignKey('ShoppingCart',related_name='shopping_cart_item',on_delete=models.CASCADE)
+    class Meta:
+        unique_together = ('shopping_cart', 'product')

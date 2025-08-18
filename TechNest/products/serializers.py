@@ -2,51 +2,25 @@ from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from utils.choice import UserType
 from utils.serializers import ImageSerializer
-from .models import (Product,ProductCartItem,
-                     ProductImage,ProductStatus,
+from .models import (Product, ProductImage,ProductStatus,
                      ProductVariant,Option,
                      OptionValue,VariantOptionValue,
-                     Category)
+                     Category, OptionValueImage)
+from itertools import product as cartesian_product
 from django.db import transaction
 import json
 from locations.models import Province,Ward
 from rest_framework.response import Response
 
 
-class OptionGetSerializer(serializers.ModelSerializer):
-    option_value = serializers.SerializerMethodField()
-    class Meta:
-        model = Option
-        fields = ['id','type',"option_value"]
 
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        return data
-    
-    def get_option_value(self,obj):
-        value = OptionValue.objects.filter(option=obj)
-        return OptionValueGetSerializer(value, many=True).data
-    
-class OptionValueGetSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = OptionValue
-        fields = ['value','id']
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        return data
     
 class CategoryListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id', 'type', 'descriptions']
     
-class CategoryDetailSerializer(serializers.ModelSerializer):
-    options = OptionGetSerializer(many=True, read_only=True)
 
-    class Meta:
-        model = Category
-        fields = ['id', 'type', 'descriptions', 'options']
     
 class ProductSerializer(serializers.ModelSerializer):
    
@@ -88,42 +62,37 @@ class ProductSerializer(serializers.ModelSerializer):
             "images",
             "upload_images",
             "province",
-            "ward",
+            "ward"
             
         ]
         extra_kwargs = {
             'owner': {'read_only': True}, 
-            'status': {'read_only': True}, 
+            'status': {'read_only': True}
         }
     
     def validate(self, data):
-        name = data.get('name', '').strip()
-        description = data.get('description', '').strip()
-        category = data.get('category')
-        max_price = data.get('max_price')
-        min_price = data.get('min_price')
-        ward = data.get('ward')
-        province = data.get('province')  
-        ward_located = Ward.objects.filter(code=ward.code).first() 
+        name = (data.get('name') or getattr(self.instance, 'name', '')).strip()
+        description = (data.get('description') or getattr(self.instance, 'description', '')).strip()
+        category = data.get('category') or getattr(self.instance, 'category', None)
+        max_price = data.get('max_price') if 'max_price' in data else getattr(self.instance, 'max_price', None)
+        min_price = data.get('min_price') if 'min_price' in data else getattr(self.instance, 'min_price', None)
+        province = data.get('province') or getattr(self.instance, 'province', None)
+        ward = data.get('ward') or getattr(self.instance, 'ward', None)
+        ward_located = Ward.objects.filter(code=getattr(ward, 'code', None)).first() if ward else None
 
-
-        if not name:
-            raise serializers.ValidationError({"name": "Tên sản phẩm không được để trống."})
-        if len(name) < 3:
-            raise serializers.ValidationError({"name": "Tên sản phẩm quá ngắn (ít nhất 3 ký tự)."})
-
-        if max_price<min_price:
-            raise serializers.ValidationError({"mean-price":"Khoảng giá trị không hợp lệ."})
-
+        if not name or len(name) < 3:
+            raise serializers.ValidationError({"name": "Tên sản phẩm không được để trống và phải ≥3 ký tự."})
         if not description:
             raise serializers.ValidationError({"description": "Mô tả sản phẩm không được để trống."})
-        
+        if max_price is not None and min_price is not None and max_price < min_price:
+            raise serializers.ValidationError({"mean-price": "Khoảng giá trị không hợp lệ."})
         if not category or not Category.objects.filter(id=category.id).exists():
             raise serializers.ValidationError({"category": "Loại sản phẩm không tồn tại."})
-        
-        if not ward_located or ward_located.province != province:
+        if ward and (not ward_located or ward_located.province != province):
             raise serializers.ValidationError({"location": "Vị trí không nhất quán."})
+
         return data
+
     def validate_upload_images(self, value):
         if not value:
             return value
@@ -163,6 +132,141 @@ class ProductSerializer(serializers.ModelSerializer):
             )
 
         return product_instance
+    
+    def update(self, instance, validated_data):
+        upload_images = validated_data.pop("upload_images", None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if upload_images:
+            
+            for image_file in upload_images:
+                ProductImage.objects.create(
+                    image=image_file,
+                    alt=f"Image for {instance.name}",
+                    product=instance,
+                )
+        return instance
+    
+class OptionGetSerializer(serializers.ModelSerializer):
+    option_value = serializers.SerializerMethodField()
+    class Meta:
+        model = Option
+        fields = ['id','type',"option_value"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        return data
+    
+    def get_option_value(self,obj):
+        value = OptionValue.objects.filter(option=obj)
+        return OptionValueGetSerializer(value, many=True).data
+    
+class OptionValueGetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OptionValue
+        fields = ['value','id']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        return data
+      
+class ProductVariantGetSerializer(serializers.ModelSerializer):
+    option_values = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProductVariant
+        fields = ['price', 'stock','product','option_values']
+
+    def get_option_values(self, obj):
+        values = OptionValue.objects.filter(variant_option_values__product_variant=obj)
+        return OptionValueGetSerializer(values, many=True).data 
+
+class OptionSerializer(serializers.ModelSerializer):
+    values = serializers.ListField(
+        child=serializers.CharField(), write_only=True, required=False
+    )
+
+    class Meta:
+        model = Option
+        fields = ["id", "type", "image_require", "product", "values"]
+        extra_kwargs = {"product": {"read_only": True}}
+
+    def validate(self, data):
+        type_value = data.get('type', getattr(self.instance, 'type', None))
+        product_value = data.get('product', getattr(self.instance, 'product', None))
+
+        if Option.objects.filter(
+            type=type_value,
+            product=product_value
+        ).exclude(pk=getattr(self.instance, "pk", None)).exists():
+            raise serializers.ValidationError(
+                {"type": "Tùy chọn này đã tồn tại cho sản phẩm."}
+            )
+        return data
+
+    def create(self, validated_data):
+        product = self.context.get("product")
+        if product:
+            validated_data["product"] = product
+
+        values_data = validated_data.pop("values", [])
+        option = super().create(validated_data)
+        
+        for val in values_data:
+            value_payload = {"value": val, "option": option.id}  # thêm option id vào payload
+            value_serializer = OptionValueSerializer(
+                data=value_payload
+            )
+            value_serializer.is_valid(raise_exception=True)
+            value_serializer.save()
+        
+        return option
+
+
+class OptionValueSerializer(serializers.ModelSerializer):
+    image = ImageSerializer(many=True, read_only=True)
+    upload_image = serializers.ImageField(write_only=True, required=False)
+
+    class Meta:
+        model = OptionValue
+        fields = ["id","value", "option", "image", "upload_image"]
+
+    def validate_upload_image(self, value):
+        option = self.context.get("option")
+        if option and option.image_require and not value:
+            raise serializers.ValidationError(
+                f"Option '{option.type}' yêu cầu hình ảnh."
+            )
+
+        if not value:
+            return value  
+
+        max_size = 10 * 1024 * 1024  
+        allowed_types = ["image/jpeg", "image/png", "image/jpg"]
+
+        if value.size > max_size:
+            raise serializers.ValidationError(
+                f"Kích thước ảnh {value.name} vượt quá 10MB"
+            )
+        if value.content_type not in allowed_types:
+            raise serializers.ValidationError(
+                f"File {value.name} không đúng định dạng ảnh"
+            )
+
+        return value
+
+    def create(self, validated_data):
+        print(validated_data)
+        upload_image = validated_data.pop("upload_image", None)
+        option_value = super().create(validated_data)
+
+        if upload_image:
+            OptionValueImage.objects.create(option_value=option_value, image=upload_image)
+
+        return option_value
 
 class VariantOptionValueSerializer(serializers.ModelSerializer):
     product_variant = serializers.PrimaryKeyRelatedField(
@@ -186,19 +290,7 @@ class VariantOptionValueSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         return VariantOptionValue.objects.create(**validated_data)
 
-    
-class ProductVariantGetSerializer(serializers.ModelSerializer):
-    option_values = serializers.SerializerMethodField()
-
-    class Meta:
-        model = ProductVariant
-        fields = ['price', 'stock','product','option_values']
-
-    def get_option_values(self, obj):
-        values = OptionValue.objects.filter(variantoptionvalue__product_variant=obj)
-        return OptionValueGetSerializer(values, many=True).data
-    
-class ProductVariantCreateSerializer(serializers.ModelSerializer):
+class ProductVariantSerializer(serializers.ModelSerializer):
     option_values = serializers.ListField(
         child=serializers.IntegerField(), write_only=True
     )
@@ -211,21 +303,43 @@ class ProductVariantCreateSerializer(serializers.ModelSerializer):
         product = self.context.get("product")
         if not product:
             raise ValidationError("Product is required in context.")
+        print(value)
+        # Lấy tất cả Option của product
+        required_options = product.options.all()
+        required_option_ids = set(required_options.values_list("id", flat=True))
 
-        category_id = product.category_id
-        # Lấy danh sách option_value hợp lệ thuộc category
+        # Lấy các OptionValue từ value
+        option_values_qs = OptionValue.objects.filter(id__in=value)
+        option_ids_from_value = list(option_values_qs.values_list("option_id", flat=True))
+
+        # 1. Kiểm tra không có 2 giá trị cùng 1 Option
+        if len(option_ids_from_value) != len(set(option_ids_from_value)):
+            raise ValidationError(
+                "Một Variant không được có 2 giá trị của cùng một Option "
+                "(ví dụ: không được có 2 màu sắc hoặc 2 kích thước)."
+            )
+
+        # 2. Kiểm tra đủ Option
+        if set(option_ids_from_value) != required_option_ids:
+            raise ValidationError(
+                f"Variant phải chứa đúng một giá trị cho mỗi Option. "
+                f"Yêu cầu: {list(required_option_ids)}, nhận: {list(set(option_ids_from_value))}"
+            )
+
+        # 3. Kiểm tra tất cả giá trị thuộc về sản phẩm
         valid_option_value_ids = OptionValue.objects.filter(
-            option__category_id=category_id
+            option__in=required_options
         ).values_list("id", flat=True)
 
-        # Kiểm tra từng id
         for ov_id in value:
             if ov_id not in valid_option_value_ids:
                 raise ValidationError(
-                    f"Option value id={ov_id} không thuộc category '{product.category.type}'."
+                    f"Option value id={ov_id} không thuộc product '{product.name}'."
                 )
 
         return value
+
+
 
     def create(self, validated_data):
         option_values_ids = validated_data.pop("option_values", [])
@@ -251,66 +365,54 @@ class ProductVariantUpdateSerializer(serializers.ModelSerializer):
         if value <= 0:
             raise serializers.ValidationError("Price must be greater than zero.")
         return value
-    
-class ProductWithComponentsSerializer(serializers.Serializer):
-    def to_representation(self, instance):
-        return {
-            "product": ProductSerializer(instance, context=self.context).data,
-            "variants": ProductVariantGetSerializer(instance.product_variant.all(), many=True).data,
-        }
 
-    def to_internal_value(self, data):
-        result = {}
-
-        optional_keys = ['product', 'options', 'option_values', 'variants']
-
-        for key in optional_keys:
-            raw = data.get(key)
-            if not raw: 
-                continue
-
-            if isinstance(raw, list) and raw:
-                raw = raw[0]  
-
-            try:
-                result[key] = json.loads(raw)
-            except Exception:
-                raise serializers.ValidationError({key: "Invalid JSON format"})
-
-        upload_images = (
-            data.getlist('upload_images')
-            if hasattr(data, 'getlist')
-            else data.get('upload_images')
-        )
-        if not upload_images:
-            raise serializers.ValidationError({"upload_images": ["This field is required."]})
-
-        if 'product' in result:
-            result['product']['upload_images'] = upload_images
-
-        return result
+class ProductOptionSetupSerializer(serializers.Serializer):
+    options = OptionSerializer(many=True)
 
     def create(self, validated_data):
-        product_data = validated_data.get('product', {})
-        variants_data = validated_data.get('variants', [])
-        request = self.context["request"]
+        product = self.context.get("product")
+        if not product:
+            raise serializers.ValidationError("Thiếu product trong context.")
 
-        if product_data:
-            product_data["owner"] = request.user
+        options_data = validated_data.get("options", [])
 
         with transaction.atomic():
-            product = None
-            if product_data:
-                product_serializer = ProductSerializer(data=product_data, context=self.context)
-                product_serializer.is_valid(raise_exception=True)
-                product = product_serializer.save()
 
-            for variant_item in variants_data:
-                variant_serializer = ProductVariantCreateSerializer(
-                    data=variant_item,
-                    context={'product': product}
+            for option_data in options_data:
+                option_serializer = OptionSerializer(
+                    data=option_data,  
+                    context={"product": product}
                 )
-                variant_serializer.is_valid(raise_exception=True)
-                variant_serializer.save()
+                option_serializer.is_valid(raise_exception=True)
+                option = option_serializer.save()
+                print(options_data)
+               
+        return {
+            "product": product,
+            "options": OptionSerializer(product.options.all(), many=True).data,
+        }
 
-        return product
+
+class ProductListSerializer(serializers.ModelSerializer):
+    images = ImageSerializer(many=True, read_only=True)
+    sold_quantity = serializers.IntegerField(read_only=True)
+    class Meta:
+        model = Product
+        fields = [
+            'id', 'name', 'status', 'description',
+            'category', 'max_price', 'min_price', 'images',
+            'province', 'ward','sold_quantity'
+        ]
+
+class ProductDetailSerializer(serializers.ModelSerializer):
+    images = ImageSerializer(many=True, read_only=True)
+    variants = ProductVariantGetSerializer(source='product_variant', many=True, read_only=True)
+
+    class Meta:
+        model = Product
+        fields = [
+            'id', 'name', 'status', 'owner', 'description',
+            'category', 'max_price', 'min_price', 'images',
+            'province', 'ward', 'variants','sold_quantity'
+        ]
+

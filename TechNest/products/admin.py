@@ -7,23 +7,14 @@ from django.contrib import messages
 from admin_site.components import option_display
 from utils.choice import ProductStatus
 from unfold.admin import ModelAdmin
-from unfold.contrib.inlines.admin import TabularInline, StackedInline
 
 
 
-class OptionValueInline(TabularInline):
-    model = OptionValue
-    extra = 1
 
-class OptionInline(TabularInline): 
-    model = Option
-    extra = 1
-    inlines = [OptionValueInline]  
 
 class CategoryAdmin(ModelAdmin):
     list_display = ['id', 'created_at', 'type', 'descriptions']
     list_filter = ['id', 'created_at']
-    inlines = [OptionInline]
 
     def delete_model(self, request, obj):
         if obj.products.exists():
@@ -35,19 +26,11 @@ class CategoryAdmin(ModelAdmin):
         else:
             super().delete_model(request, obj)      
 
-class OptionAdmin(ModelAdmin):
-    list_display = ['id', 'type', 'category']
-    search_fields = [
-        'id',                  
-        'type',                
-        'category__id',       
-        'category__type'      
-    ]
-    inlines = [OptionValueInline]
+
 
 class ProductApproved(ModelAdmin):
     list_display = ['name','owner','category_name','status_display']
-    readonly_fields = ['image_gallery']
+    readonly_fields = ['image_gallery', 'owner']
     fieldsets = [
         ("Status", {"fields": ["status"]}),
         ("Detail", {"fields": ["name", "owner","category"]}),
@@ -100,7 +83,6 @@ class ProductApproved(ModelAdmin):
     status_display.short_description = "Status"
 
 
-technest_admin_site.register(Option, OptionAdmin)
 technest_admin_site.register(Category, CategoryAdmin)
 technest_admin_site.register(Product, ProductApproved)
 

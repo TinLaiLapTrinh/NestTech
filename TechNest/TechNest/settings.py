@@ -266,11 +266,6 @@ UNFOLD = {
                         "link": reverse_lazy("technest_admin:products_category_changelist"),
                     },
                     {
-                        "icon": "tune", 
-                        "title": _("Options"),
-                        "link": reverse_lazy("technest_admin:products_option_changelist"),
-                    },  
-                    {
                         "icon": "add_shopping_cart", 
                         "title": _("Product"),
                         "link": reverse_lazy("technest_admin:products_product_changelist"),
