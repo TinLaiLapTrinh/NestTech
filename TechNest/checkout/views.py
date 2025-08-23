@@ -3,11 +3,12 @@ from rest_framework import mixins, parsers, status, viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated,AllowAny
 from accounts.perm  import IsCustomer
-from checkout.perms import IsShoppingCartOwner
-from .models import ShoppingCart, ShoppingCartItem
-from .serializers import ShoppingCartItemSerializer, ShoppingCartListItemSerializer, ShoppingCartSerializer
+from checkout.perms import IsShoppingCartOwner, IsOrderOwner
+from .models import ShoppingCart, ShoppingCartItem, Order, OrderDetail
+from .serializers import ShoppingCartItemSerializer, ShoppingCartListItemSerializer, ShoppingCartSerializer,OrderSerializer,OrderDetailSerializer
+
 from .paginators import ShoppingCartItemPaginator
 
 
@@ -52,7 +53,8 @@ class ShoppingCartViewSet(viewsets.GenericViewSet,
     @action(detail=False, methods=['get'], url_path='items')
     def list_items(self, request):
         """Lấy danh sách item trong giỏ hàng"""
-        items = self.get_queryset()  # vì get_queryset đã filter theo user
+
+        items = self.get_queryset()  
         page = self.paginate_queryset(items)
         serializer = self.get_serializer(page, many=True)
         return self.get_paginated_response(serializer.data)
@@ -75,7 +77,7 @@ class ShoppingCartViewSet(viewsets.GenericViewSet,
         try:
             item = cart.shopping_cart_item.get(pk=item_id)
         except ShoppingCartItem.DoesNotExist:
-            return Response({'error': 'Item không tồn tại'}, status=404)
+            return Response({'error': 'Item không tồn tại'}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = self.get_serializer(item, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -89,7 +91,47 @@ class ShoppingCartViewSet(viewsets.GenericViewSet,
         try:
             item = cart.shopping_cart_item.get(pk=item_id)
         except ShoppingCartItem.DoesNotExist:
-            return Response({'error': 'Item không tồn tại'}, status=404)
+            return Response({'error': 'Item không tồn tại'}, status=status.HTTP_404_NOT_FOUND)
 
         item.delete()
-        return Response({'message': 'Xóa sản phẩm thành công'}, status=204)
+        return Response({'message': 'Xóa sản phẩm thành công'}, status=status.HTTP_204_NO_CONTENT)
+    
+class OrderViewSet(viewsets.GenericViewSet, 
+                   mixins.CreateModelMixin,
+                   mixins.RetrieveModelMixin):
+    serializer_class = OrderSerializer
+    queryset = Order.objects.all()
+
+    def get_permissions(self):
+        if self.action == 'create':
+            return [IsCustomer()]
+        if self.action == 'delete_detail_order':
+            return [IsOrderOwner()]
+        return [AllowAny()]
+
+    def perform_create(self, serializer):
+        """Hook để gắn owner cho order"""
+        serializer.save(owner=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        """Custom response JSON"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        order = self.perform_create(serializer)
+        return Response(
+            {"message": "order created successfully!", "order_id": serializer.instance.id},
+            status=status.HTTP_201_CREATED
+        )
+
+    @action(detail=True, methods=['delete'], url_path='delete-order-detail/(?P<order_detail_id>[^/.]+)')
+    def delete_detail_order(self, request, pk=None, order_detail_id=None):
+        order = self.get_object()  # DRF helper
+        try:
+            detail = order.order_details.get(pk=order_detail_id)
+        except OrderDetail.DoesNotExist:
+            return Response({'error': 'Chi tiết đơn hàng không tồn tại'},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        detail.delete()
+        return Response({'message': 'Xóa sản phẩm thành công'}, 
+                        status=status.HTTP_204_NO_CONTENT)

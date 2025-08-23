@@ -4,6 +4,7 @@ from products.models import Category, Product, ProductImage
 from utils.serializers import ImageSerializer
 from locations.models import Province, Ward
 from utils.choice import UserType
+from django.db import transaction
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -34,7 +35,12 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {"password": {"write_only": True}}
 
     def get_follow_count(self, obj):
-        pass
+        if obj.user_type == UserType.SUPPLIER:
+             return obj.followers.count() 
+        else :
+            return obj.following.count() 
+
+           
 
     def create(self, validated_data):
         user = User(**validated_data)
@@ -172,19 +178,28 @@ class SupplierRegister(serializers.ModelSerializer):
         }
         product_images = validated_data.pop("product_upload_images", [])
 
-        # Tạo supplier (User)
         password = validated_data.pop("password")
-        supplier = User.objects.create(**validated_data)
-        supplier.set_password(password)
-        supplier.save()
 
-        # Tạo product
-        product = Product.objects.create(owner=supplier, **product_data)
+        try:
+            with transaction.atomic():
+                # Tạo supplier (User)
+                supplier = User.objects.create(**validated_data)
+                supplier.set_password(password)
+                supplier.save()
 
-        # Lưu ảnh sản phẩm
-        ProductImage.objects.bulk_create([
-            ProductImage(product=product, image=image, alt=f"Image for {product.name}")
-            for image in product_images
-        ])
+                # Tạo product
+                product = Product.objects.create(owner=supplier, **product_data)
 
-        return {"user":supplier,"product":product}
+                # Lưu ảnh sản phẩm
+                if product_images:
+                    ProductImage.objects.bulk_create([
+                        ProductImage(product=product, image=image, alt=f"Image for {product.name}")
+                        for image in product_images
+                    ])
+
+                return {"user": supplier, "product": product}
+
+        except Exception as e:
+            # Tùy logic có thể raise ValidationError để DRF trả về 400
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({"error": f"Tạo supplier/product thất bại: {str(e)}"})

@@ -1,4 +1,5 @@
 from django.db import models
+from utils.choice import DeliveryMethods
 
 class AdministrativeRegion(models.Model):
     id = models.AutoField(primary_key=True)  # integer NOT NULL primary key
@@ -39,6 +40,14 @@ class Province(models.Model):
         related_name='provinces'
     )
 
+    region = models.ForeignKey(
+        'AdministrativeRegion',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='provinces'
+    )
+
     def __str__(self):
         return self.full_name
 
@@ -67,3 +76,32 @@ class Ward(models.Model):
 
     def __str__(self):
         return self.full_name
+    
+
+class ShippingRoute(models.Model):
+    origin_region = models.ForeignKey("AdministrativeRegion", related_name="origin_rates", on_delete=models.CASCADE)
+    destination_region = models.ForeignKey("AdministrativeRegion", related_name="destination_rates", on_delete=models.CASCADE)
+    class Meta:
+        unique_together = ("origin_region", "destination_region")
+
+    def __str__(self):
+       return f"{self.origin_region} đến {self.destination_region}"
+
+class ShippingRate(models.Model):
+    shipping_route = models.ForeignKey(
+        'ShippingRoute',
+        related_name='rates',
+        on_delete=models.CASCADE
+    )
+    method = models.CharField(max_length=20, choices=DeliveryMethods)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    
+
+
+class UserLocation(models.Model):
+    user = models.ForeignKey('accounts.User', related_name='user_locations', on_delete=models.CASCADE)
+    address = models.CharField(max_length=30,null=False)
+    province=models.ForeignKey('Province', related_name='user_location',on_delete=models.CASCADE)
+    ward = models.ForeignKey('Ward', related_name='user_location', on_delete=models.CASCADE)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)    
