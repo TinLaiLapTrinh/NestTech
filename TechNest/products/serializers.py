@@ -396,6 +396,17 @@ class ProductOptionSetupSerializer(serializers.Serializer):
 class ProductListSerializer(serializers.ModelSerializer):
     images = ImageSerializer(many=True, read_only=True)
     sold_quantity = serializers.IntegerField(read_only=True)
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["owner"] = {
+            "id": instance.owner.id,
+            "name": f"{instance.owner.first_name} {instance.owner.last_name}".strip(),
+        }
+        if instance.province:
+            data["province"] = instance.province.full_name
+        if instance.ward:
+            data["ward"] = instance.ward.full_name
+        return data
     class Meta:
         model = Product
         fields = [

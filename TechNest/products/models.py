@@ -16,7 +16,7 @@ class Category(BaseModel):
 
 
 class Product(BaseModel):
-    name = models.CharField(max_length=50,null=False)
+    name = models.CharField(max_length=100,null=False)
     status = models.CharField(max_length=20, choices=ProductStatus,default=ProductStatus.DEPENDING)
     max_price = models.FloatField(null=True)
     min_price = models.FloatField(null=True)
@@ -40,6 +40,19 @@ class Product(BaseModel):
     )
     address = models.CharField(max_length=256, null=True)
     is_deleted = models.BooleanField(default=False)
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        # Nếu là product mới và có min_price thì tạo variant ngay
+        if is_new and self.min_price is not None:
+            ProductVariant.objects.create(
+                product=self,
+                price=self.min_price,
+                stock=0,  # stock mặc định
+                sku=f"{self.id}-{int(self.min_price)}"  # tạo SKU tự động
+            )
+
 
 # thêm 1 trường yêu cầu hình ảnh vào đây để khi người dùng ấn là có thì sẽ hiển thị ô thêm ảnh
 class Option(models.Model):

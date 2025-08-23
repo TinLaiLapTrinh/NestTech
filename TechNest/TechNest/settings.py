@@ -37,7 +37,8 @@ DEBUG = True
 ALLOWED_HOSTS = [
     "192.168.1.3",
      "localhost",
-     "127.0.0.1"
+     "127.0.0.1",
+     "10.133.216.48"
 ]
 
 
@@ -144,7 +145,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-INTERNAL_IPS = [ "192.168.1.3","127.0.0.1"]
+INTERNAL_IPS = [ "192.168.1.3","127.0.0.1","10.133.216.48"]
 
 
 # Internationalization
@@ -163,6 +164,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+
+STATICFILES_DIRS = [
+    BASE_DIR / "static",  # Đường dẫn đến thư mục static của dự án
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -270,6 +275,24 @@ UNFOLD = {
                         "title": _("Product"),
                         "link": reverse_lazy("technest_admin:products_product_changelist"),
                     }
+                    
+                ]
+            },
+
+            {
+                "title": _("Logictic"),
+                "separator": True,
+                "items": [
+                    {
+                        "icon": "local_shipping",
+                        "title": _("Logictic"),
+                        "link": reverse_lazy("technest_admin:locations_shippingroute_changelist"),
+                    },
+                    # {
+                    #     "icon": "add_shopping_cart", 
+                    #     "title": _("Product"),
+                    #     "link": reverse_lazy("technest_admin:locations_product_changelist"),
+                    # }
                     
                 ]
             }
