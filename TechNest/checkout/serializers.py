@@ -1,6 +1,6 @@
 from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
-from utils.choice import UserType, DeliveryMethods
+from utils.choice import UserType, DeliveryMethods, DeliveryStatus
 from utils.serializers import ImageSerializer
 from .models import Order,OrderDetail,ShoppingCart, ShoppingCartItem
 from products.models import ProductVariant, Product, VariantOptionValue
@@ -92,13 +92,15 @@ class OrderDetailSerializer(serializers.ModelSerializer):
     price = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     delivery_route = serializers.PrimaryKeyRelatedField(read_only=True)  
     delivery_charge = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)  
-
+    product = ProductVariantGetSerializer(read_only=True)
     class Meta:
         model = OrderDetail
         fields = [
             "product", "quantity", "price",
-            "delivery_route", "distance", "delivery_charge"
+            "delivery_route", "distance",
+            "delivery_charge","delivery_status",
         ]
+        read_only_fields = ["product", "quantity", "price"]
 
     def validate(self, data):
         product_variant = data.get("product")
@@ -116,6 +118,36 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             })
 
         return data
+    
+    def create(self, validated_data):
+        """Trừ stock ngay khi tạo OrderDetail"""
+        product_variant = validated_data["product"]
+        quantity = validated_data["quantity"]
+
+
+        product_variant.stock -= quantity
+        product_variant.save(update_fields=["stock"])
+
+
+        validated_data["price"] = product_variant.price  
+
+        return super().create(validated_data)
+    def update(self, instance, validated_data):
+        old_status = instance.delivery_status
+        new_status = validated_data.get("delivery_status", old_status)
+
+
+        if old_status != DeliveryStatus.DELIVERED and new_status == DeliveryStatus.DELIVERED:
+            product = instance.product.product 
+            product.sold_quantity = (product.sold_quantity or 0) + instance.quantity
+            product.save(update_fields=["sold_quantity"])
+
+        return super().update(instance, validated_data)
+    
+class OrderListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ["id","total","created_at"]
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -126,10 +158,13 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            "total", "owner", "province",
+            "total", "owner", "province","ward",
             "address", "receiver_phone_number", "latitude",
             "longitude","order_details"
         ]
+        
+        extra_kwargs = {"owner": {"read_only": True}}
+    
 
 
     def validate(self, data):
@@ -159,7 +194,7 @@ class OrderSerializer(serializers.ModelSerializer):
                     )
                 except ShippingRoute.DoesNotExist:
                     raise serializers.ValidationError({
-                        "delivery": f"Không tìm thấy tuyến vận chuyển từ {origin_region} đến {destination_region}"
+                        "delivery": f"Không tìm thấy tuyến vận chuyển từ {origin_region.id} đến {destination_region.id}"
                     })
 
                 rate = route.rates.filter(method=method).first()
@@ -184,7 +219,7 @@ class OrderSerializer(serializers.ModelSerializer):
                     delivery_route=route,
                     distance=detail_data["distance"],
                     delivery_charge=delivery_charge,
-                    delivery_method=method  # lưu phương thức vận chuyển
+                    delivery_method=method  
                 )
 
                 total_price += (price * quantity + delivery_charge)

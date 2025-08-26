@@ -6,7 +6,7 @@ router = DefaultRouter()
 
 # Register the viewsets with the router
 router.register("provinces", viewset=views.ProvinceViewSet, basename="province")
-
+router.register("user-location", views.UserLocationViewSet,basename="user-location")
 urlpatterns = [
     path("", include(router.urls)),
 ]
