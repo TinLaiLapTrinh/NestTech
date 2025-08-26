@@ -4,10 +4,12 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated,AllowAny
-from accounts.perm  import IsCustomer
+from accounts.perms  import IsCustomer
 from checkout.perms import IsShoppingCartOwner, IsOrderOwner
 from .models import ShoppingCart, ShoppingCartItem, Order, OrderDetail
-from .serializers import ShoppingCartItemSerializer, ShoppingCartListItemSerializer, ShoppingCartSerializer,OrderSerializer,OrderDetailSerializer
+from .serializers import (ShoppingCartItemSerializer, ShoppingCartListItemSerializer,
+                           ShoppingCartSerializer,OrderSerializer,
+                           OrderDetailSerializer,OrderListSerializer)
 
 from .paginators import ShoppingCartItemPaginator
 
@@ -79,9 +81,16 @@ class ShoppingCartViewSet(viewsets.GenericViewSet,
         except ShoppingCartItem.DoesNotExist:
             return Response({'error': 'Item không tồn tại'}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = self.get_serializer(item, data=request.data, partial=True)
+        serializer = self.get_serializer(
+            item, 
+            data=request.data, 
+            partial=True, 
+            context={'cart': cart}
+        )
+
         serializer.is_valid(raise_exception=True)
         serializer.save()
+
         return Response(serializer.data)
     
     @action(detail=False, methods=['delete'], url_path='delete-item/(?P<item_id>[^/.]+)')
@@ -96,11 +105,24 @@ class ShoppingCartViewSet(viewsets.GenericViewSet,
         item.delete()
         return Response({'message': 'Xóa sản phẩm thành công'}, status=status.HTTP_204_NO_CONTENT)
     
-class OrderViewSet(viewsets.GenericViewSet, 
+class OrderViewSet(viewsets.GenericViewSet,
+                   mixins.ListModelMixin, 
                    mixins.CreateModelMixin,
                    mixins.RetrieveModelMixin):
     serializer_class = OrderSerializer
-    queryset = Order.objects.all()
+
+    def get_queryset(self):
+        user = self.request.user
+        
+        return Order.objects.filter(owner=user)
+
+
+    def get_serializer_class(self):
+        if self.action in ['retrieve']:
+            return OrderSerializer
+        elif self.action in ['list']:
+            return OrderListSerializer
+        return OrderSerializer
 
     def get_permissions(self):
         if self.action == 'create':
@@ -115,17 +137,24 @@ class OrderViewSet(viewsets.GenericViewSet,
 
     def create(self, request, *args, **kwargs):
         """Custom response JSON"""
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(
+            data=request.data,
+            context={'owner': request.user}  
+            )
         serializer.is_valid(raise_exception=True)
         order = self.perform_create(serializer)
         return Response(
             {"message": "order created successfully!", "order_id": serializer.instance.id},
             status=status.HTTP_201_CREATED
         )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+
 
     @action(detail=True, methods=['delete'], url_path='delete-order-detail/(?P<order_detail_id>[^/.]+)')
     def delete_detail_order(self, request, pk=None, order_detail_id=None):
-        order = self.get_object()  # DRF helper
+        order = self.get_object() 
         try:
             detail = order.order_details.get(pk=order_detail_id)
         except OrderDetail.DoesNotExist:
@@ -135,3 +164,4 @@ class OrderViewSet(viewsets.GenericViewSet,
         detail.delete()
         return Response({'message': 'Xóa sản phẩm thành công'}, 
                         status=status.HTTP_204_NO_CONTENT)
+    

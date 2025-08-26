@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import User
+from .models import User, Follow
+from checkout.models import ShoppingCart
 from products.models import Category, Product, ProductImage
 from utils.serializers import ImageSerializer
 from locations.models import Province, Ward
@@ -29,16 +30,16 @@ class UserSerializer(serializers.ModelSerializer):
             "address",
             "avatar",
             "phone_number",
+            "user_type",
             "follow_count",
+            
             
         ]
         extra_kwargs = {"password": {"write_only": True}}
 
     def get_follow_count(self, obj):
-        if obj.user_type == UserType.SUPPLIER:
-             return obj.followers.count() 
-        else :
-            return obj.following.count() 
+        return obj.followers.count() if obj.user_type == UserType.SUPPLIER else obj.following.count()
+
 
            
 
@@ -48,23 +49,19 @@ class UserSerializer(serializers.ModelSerializer):
         user.save()
         return user
     
-class SupplierRegister(serializers.ModelSerializer):
 
-    avatar = serializers.ImageField(required=False)
-    
-    
 
     
 
     
 class CustomerRegister(serializers.ModelSerializer):
-
     avatar = serializers.ImageField(required=False)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
         data["avatar"] = instance.avatar.url if instance.avatar else ""
         return data
+
     class Meta:
         model = User
         fields = [
@@ -82,14 +79,19 @@ class CustomerRegister(serializers.ModelSerializer):
         extra_kwargs = {"password": {"write_only": True}}
 
     def create(self, validated_data):
-        user_serializer = UserSerializer(data = validated_data)
+        # tạo user trước
+        user_serializer = UserSerializer(data=validated_data)
         if user_serializer.is_valid():
-            return user_serializer.save(
-                is_active = True,
-                user_type = UserType.CUSTOMER
+            user = user_serializer.save(
+                is_active=True,
+                user_type=UserType.CUSTOMER
             )
+            # tạo giỏ hàng cho user
+            ShoppingCart.objects.create(owner=user)
+            return user
         else:
             raise serializers.ValidationError(user_serializer.errors)
+
 
 
 class SupplierRegister(serializers.ModelSerializer):
@@ -203,3 +205,82 @@ class SupplierRegister(serializers.ModelSerializer):
             # Tùy logic có thể raise ValidationError để DRF trả về 400
             from rest_framework.exceptions import ValidationError
             raise ValidationError({"error": f"Tạo supplier/product thất bại: {str(e)}"})
+
+class FollowSerializer(serializers.ModelSerializer):
+    """
+    serializer cho theo dõi giữa khách hàng và nhà cung cấp,
+    và họ sẽ được thông báo khi nhà cung cấp có thông tin mới qua email, và ngược lại nhà cung cấp
+    chỉ coi được người đang follow chính mình
+    """
+
+    class Meta:
+        model = Follow
+        fields = ["active", "followee", "follower"]
+        extra_kwargs = {
+            "follower": {"read_only": True},
+            "followee": {"read_only": True},
+            }
+        
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        data["follower"] = {
+            "id": instance.follower.id,
+            "name": f"{instance.follower.first_name} {instance.follower.last_name}".strip(),
+            "avatar": instance.follower.avatar.url
+            if instance.follower.avatar
+            else None,
+            "email": instance.follower.email,
+            "address": instance.follower.address,
+            "province": {
+                "name": instance.follower.province.name,
+            } if instance.follower.province else None,
+            "phone_number": instance.follower.phone_number,
+            "user_type": instance.follower.user_type,
+        }
+
+        # Thêm thông tin chi tiết của followee
+        data["followee"] = {
+            "id": instance.followee.id,
+            "name": f"{instance.followee.first_name} {instance.followee.last_name}".strip(),
+            "avatar": instance.followee.avatar.url
+            if instance.followee.avatar
+            else None,
+            "email": instance.followee.email,
+            "address": instance.followee.address,
+            "province": {
+                "name": instance.followee.province.name,
+            } if instance.followee.province else None,
+            "phone_number": instance.followee.phone_number,
+             "user_type": instance.followee.user_type,
+        }
+
+        return data
+
+    def validate(self, attrs):
+        request = self.context["request"]
+        follower = request.user
+        followee = self.context["followee"]
+        
+        print(follower.user_type, followee.user_type)
+
+        if follower == followee:
+            raise serializers.ValidationError("Bạn không thể tự theo dõi chính mình.")
+
+        if follower.user_type != UserType.CUSTOMER:
+            raise serializers.ValidationError("Người dùng theo dõi không hợp lệ.")
+
+        if follower.user_type == followee.user_type:
+            raise serializers.ValidationError("Người dùng theo dõi không phù hợp.")
+
+        if Follow.objects.filter(follower=follower, followee=followee).exists():
+            raise serializers.ValidationError("Đã theo dõi người này rồi.")
+
+        attrs["follower"] = follower
+        attrs["followee"] = followee
+        return attrs
+
+
+    def create(self, validated_data):
+        return Follow.objects.create(**validated_data)

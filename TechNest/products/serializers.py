@@ -6,6 +6,7 @@ from .models import (Product, ProductImage,ProductStatus,
                      ProductVariant,Option,
                      OptionValue,VariantOptionValue,
                      Category, OptionValueImage)
+from checkout.models import OrderDetail
 from itertools import product as cartesian_product
 from django.db import transaction
 import json
@@ -62,12 +63,15 @@ class ProductSerializer(serializers.ModelSerializer):
             "images",
             "upload_images",
             "province",
-            "ward"
+            "ward",
+            "active"
             
         ]
         extra_kwargs = {
             'owner': {'read_only': True}, 
-            'status': {'read_only': True}
+            'status': {'read_only': True},
+            'active':{'read_only':True}
+
         }
     
     def validate(self, data):
@@ -116,9 +120,8 @@ class ProductSerializer(serializers.ModelSerializer):
         
     def create(self, validated_data):
         upload_images = validated_data.pop("upload_images", [])
-
-        request = self.context["request"]
         owner =  self.context["request"].user
+        validated_data["active"] = False
 
         validated_data["owner"] = owner
         
@@ -167,22 +170,39 @@ class OptionGetSerializer(serializers.ModelSerializer):
 class OptionValueGetSerializer(serializers.ModelSerializer):
     class Meta:
         model = OptionValue
-        fields = ['value','id']
+        fields = ['id','value', 'option']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        data["option"] ={
+            "type": instance.option.type
+        }
         return data
       
 class ProductVariantGetSerializer(serializers.ModelSerializer):
     option_values = serializers.SerializerMethodField()
+    product = serializers.SerializerMethodField()
 
     class Meta:
         model = ProductVariant
-        fields = ['price', 'stock','product','option_values']
+        fields = ['id', 'price', 'stock', 'product', 'option_values']
 
     def get_option_values(self, obj):
-        values = OptionValue.objects.filter(variant_option_values__product_variant=obj)
-        return OptionValueGetSerializer(values, many=True).data 
+        values = OptionValue.objects.filter(
+            variant_option_values__product_variant=obj
+        )
+        return OptionValueGetSerializer(values, many=True).data
+
+    def get_product(self, obj):
+        product = obj.product
+        # lấy ảnh đầu tiên (nếu có)
+        first_image = product.images.first()
+        return {
+            "id": product.id,
+            "name": product.name,
+            "image": first_image.image.url if first_image else None
+        }
+
 
 class OptionSerializer(serializers.ModelSerializer):
     values = serializers.ListField(
@@ -224,7 +244,6 @@ class OptionSerializer(serializers.ModelSerializer):
             value_serializer.save()
         
         return option
-
 
 class OptionValueSerializer(serializers.ModelSerializer):
     image = ImageSerializer(many=True, read_only=True)
@@ -389,9 +408,8 @@ class ProductOptionSetupSerializer(serializers.Serializer):
                
         return {
             "product": product,
-            "options": OptionSerializer(product.options.all(), many=True).data,
+            "options": OptionSerializer(product.product_options.all(), many=True).data,
         }
-
 
 class ProductListSerializer(serializers.ModelSerializer):
     images = ImageSerializer(many=True, read_only=True)
@@ -418,12 +436,26 @@ class ProductListSerializer(serializers.ModelSerializer):
 class ProductDetailSerializer(serializers.ModelSerializer):
     images = ImageSerializer(many=True, read_only=True)
     variants = ProductVariantGetSerializer(source='product_variant', many=True, read_only=True)
+    options = OptionGetSerializer(source='product_options', many=True,read_only=True)
+    province = serializers.SlugRelatedField(read_only=True, slug_field='name')
+    ward = serializers.SlugRelatedField(read_only=True, slug_field='name')
 
     class Meta:
         model = Product
         fields = [
             'id', 'name', 'status', 'owner', 'description',
             'category', 'max_price', 'min_price', 'images',
-            'province', 'ward', 'variants','sold_quantity'
+            'province', 'ward', 'variants','sold_quantity','options',
         ]
+
+class OrderRequestSerializer(serializers.ModelSerializer):
+    # order_id = serializers.IntegerField(source="order.id", read_only=True)
+    # order_date = serializers.DateTimeField(source="order.created_at", read_only=True)
+    # product_name = serializers.CharField(source="product.product.name", read_only=True)
+    # variant_name = serializers.CharField(source="product.name", read_only=True)
+    product_variant = ProductVariantSerializer(source='product', read_only=True)
+    class Meta:
+        model = OrderDetail   
+        fields = ["id", "product_variant", "quantity",
+                  "price", "delivery_charge", "delivery_status", "delivery_method", "delivery_route"]
 

@@ -1,13 +1,15 @@
 from django.shortcuts import render
 from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.decorators import action
-from accounts.perm import IsSupplier
+from accounts.perms import IsSupplier
 import products.perms as perms 
 from rest_framework import mixins, parsers, status, viewsets
 from rest_framework import viewsets, generics, status, parsers, permissions
 from .models import (Product,ProductImage,ProductStatus,
                     ProductVariant,Option,OptionValue,
                     VariantOptionValue)
+from checkout.models import OrderDetail
+from checkout.serializers import OrderDetailSerializer
 from .serializers import (CategoryListSerializer,
                         ProductSerializer,
                         ProductVariantGetSerializer,
@@ -19,7 +21,8 @@ from .serializers import (CategoryListSerializer,
                         OptionValueSerializer,
                         ProductVariantSerializer,
                         ProductListSerializer,
-                        ProductDetailSerializer)
+                        ProductDetailSerializer,
+                        OrderRequestSerializer)
 from .models import Category
 from rest_framework.response import Response
 from django.db.models import Q
@@ -29,13 +32,6 @@ from .paginators import ProductPaginator
 class CategoryViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
     queryset = Category.objects.all()
 
-    def get_queryset(self):
-        if self.action == 'retrieve':
-            return Category.objects.prefetch_related(
-                'options',              
-                'options__option_values' 
-            )
-        return Category.objects.all()
     serializer_class = CategoryListSerializer
     # def get_serializer_class(self):
     #     if self.action == 'retrieve':
@@ -240,6 +236,25 @@ class ProductVariantViewSet(viewsets.GenericViewSet,
             "message": "Product variant deleted successfully!",
             "data": response.data
         }, status=status.HTTP_200_OK)
+    
+class OrderRequestViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.UpdateModelMixin):
+
+
+    def get_permissions(self):
+        if self.action =='update':
+            return [perms.IsOrderRequest()]
+        return [IsSupplier()]
+    
+    def get_serializer_class(self):
+        if self.action =='update':
+            return OrderDetailSerializer     
+        return OrderRequestSerializer
+    
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return OrderDetail.objects.none()
+        return OrderDetail.objects.filter(product__product__owner = self.request.user)
+    
 
 
 

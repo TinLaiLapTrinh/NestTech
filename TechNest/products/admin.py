@@ -82,6 +82,14 @@ class ProductApproved(ModelAdmin):
 
     status_display.short_description = "Status"
 
+    def save_model(self, request, obj, form, change):
+        
+        if obj.status == ProductStatus.APPROVED:
+            obj.active = True
+        else:
+            obj.active = False
+        super().save_model(request, obj, form, change)
+
 
 technest_admin_site.register(Category, CategoryAdmin)
 technest_admin_site.register(Product, ProductApproved)

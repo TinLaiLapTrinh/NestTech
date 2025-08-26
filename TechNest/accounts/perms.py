@@ -22,3 +22,11 @@ class IsCustomer(permissions.IsAuthenticated):
     def has_permission(self, request, view):
         is_authenticated = super().has_permission(request, view)
         return is_authenticated and request.user.user_type == UserType.CUSTOMER 
+    
+class IsFollower(permissions.IsAuthenticated):
+    """
+    Chỉ cho phép người dùng là follower của bản ghi Follow được xóa.
+    """
+    def has_object_permission(self, request, view, obj):
+        # Kiểm tra nếu người dùng hiện tại là follower
+        return obj.follower == request.user
