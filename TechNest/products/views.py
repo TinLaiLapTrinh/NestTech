@@ -10,7 +10,7 @@ from .models import (Product,ProductImage,ProductStatus,
                     VariantOptionValue)
 from checkout.models import OrderDetail
 from checkout.serializers import OrderDetailSerializer
-from .serializers import (CategoryListSerializer,
+from .serializers import (CategorySerializer,
                         ProductSerializer,
                         ProductVariantGetSerializer,
                         ProductVariantUpdateSerializer,
@@ -32,7 +32,7 @@ from .paginators import ProductPaginator
 class CategoryViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
     queryset = Category.objects.all()
 
-    serializer_class = CategoryListSerializer
+    serializer_class = CategorySerializer
     # def get_serializer_class(self):
     #     if self.action == 'retrieve':
     #         return CategoryDetailSerializer
@@ -147,7 +147,6 @@ class ProductViewSet(viewsets.GenericViewSet,
             product = self.get_object()
         except:
             return Response({"detail": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
-        # print(request.data)
         serializer = self.get_serializer(data=request.data, context={'product': product})
         serializer.is_valid(raise_exception=True)
         serializer.save()
