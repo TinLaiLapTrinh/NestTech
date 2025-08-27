@@ -16,7 +16,7 @@ from rest_framework.response import Response
 
 
     
-class CategoryListSerializer(serializers.ModelSerializer):
+class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id', 'type', 'descriptions']
@@ -436,26 +436,60 @@ class ProductListSerializer(serializers.ModelSerializer):
 class ProductDetailSerializer(serializers.ModelSerializer):
     images = ImageSerializer(many=True, read_only=True)
     variants = ProductVariantGetSerializer(source='product_variant', many=True, read_only=True)
-    options = OptionGetSerializer(source='product_options', many=True,read_only=True)
-    province = serializers.SlugRelatedField(read_only=True, slug_field='name')
-    ward = serializers.SlugRelatedField(read_only=True, slug_field='name')
+    options = OptionGetSerializer(source='product_options', many=True, read_only=True)
+
+    owner = serializers.SerializerMethodField()
+    category = serializers.CharField(source="category.type", read_only=True)
+    price_range = serializers.SerializerMethodField()
+    location = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'status', 'owner', 'description',
-            'category', 'max_price', 'min_price', 'images',
-            'province', 'ward', 'variants','sold_quantity','options',
+            'id', 'name', 'status', 'description',
+            'owner', 'category',
+            'price_range', 'images', 'location',
+            'variants', 'options', 'sold_quantity'
         ]
 
+    def get_owner(self, obj):
+        return {
+            "id": obj.owner.id,
+            "name": obj.owner.first_name +" " + obj.owner.last_name,
+            
+        }
+
+    def get_price_range(self, obj):
+        return {
+            "min": obj.min_price,
+            "max": obj.max_price
+        }
+
+    def get_location(self, obj):
+        return {
+            "province": obj.province.name if obj.province else None,
+            "ward": obj.ward.name if obj.ward else None
+        }
+
+
+
 class OrderRequestSerializer(serializers.ModelSerializer):
-    # order_id = serializers.IntegerField(source="order.id", read_only=True)
-    # order_date = serializers.DateTimeField(source="order.created_at", read_only=True)
-    # product_name = serializers.CharField(source="product.product.name", read_only=True)
-    # variant_name = serializers.CharField(source="product.name", read_only=True)
-    product_variant = ProductVariantSerializer(source='product', read_only=True)
+    product_variant = ProductVariantGetSerializer(source='product', read_only=True)
+    image = serializers.SerializerMethodField()
+
     class Meta:
         model = OrderDetail   
-        fields = ["id", "product_variant", "quantity",
-                  "price", "delivery_charge", "delivery_status", "delivery_method", "delivery_route"]
+        fields = [
+            "id", "quantity", "price", "delivery_charge",
+            "delivery_status", "delivery_method",
+            "product_variant", "delivery_route",
+            "image"
+        ]
+
+    def get_image(self, obj):
+        # obj.product = ProductVariant
+        product = obj.product.product  
+        if product.images.exists():
+            return product.images.first().image.url
+        return None
 

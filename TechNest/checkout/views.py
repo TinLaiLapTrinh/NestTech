@@ -10,6 +10,7 @@ from .models import ShoppingCart, ShoppingCartItem, Order, OrderDetail
 from .serializers import (ShoppingCartItemSerializer, ShoppingCartListItemSerializer,
                            ShoppingCartSerializer,OrderSerializer,
                            OrderDetailSerializer,OrderListSerializer)
+from utils.choice import DeliveryStatus
 
 from .paginators import ShoppingCartItemPaginator
 
@@ -127,7 +128,7 @@ class OrderViewSet(viewsets.GenericViewSet,
     def get_permissions(self):
         if self.action == 'create':
             return [IsCustomer()]
-        if self.action == 'delete_detail_order':
+        if self.action == 'cancel_detail_order':
             return [IsOrderOwner()]
         return [AllowAny()]
 
@@ -152,16 +153,24 @@ class OrderViewSet(viewsets.GenericViewSet,
 
 
 
-    @action(detail=True, methods=['delete'], url_path='delete-order-detail/(?P<order_detail_id>[^/.]+)')
-    def delete_detail_order(self, request, pk=None, order_detail_id=None):
-        order = self.get_object() 
+    @action(detail=True, methods=['patch'], url_path='cancel-order-detail/(?P<order_detail_id>[^/.]+)')
+    def cancel_detail_order(self, request, pk=None, order_detail_id=None):
+        order = self.get_object()
         try:
             detail = order.order_details.get(pk=order_detail_id)
         except OrderDetail.DoesNotExist:
             return Response({'error': 'Chi tiết đơn hàng không tồn tại'},
                             status=status.HTTP_404_NOT_FOUND)
 
-        detail.delete()
-        return Response({'message': 'Xóa sản phẩm thành công'}, 
-                        status=status.HTTP_204_NO_CONTENT)
-    
+        # Nếu đã giao xong thì không cho hủy
+        if detail.status in [DeliveryStatus.DELIVERED, DeliveryStatus.REFUNDED]:
+            return Response({'error': 'Đơn hàng đã hoàn tất, không thể hủy.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        detail.status = DeliveryStatus.CANCELLED
+        detail.save()
+
+        return Response({'message': 'Đơn hàng đã được hủy thành công',
+                        'detail_id': detail.id,
+                        'status': detail.status},
+                        status=status.HTTP_200_OK)
