@@ -54,7 +54,7 @@ class Product(BaseModel):
             )
 
 
-# thêm 1 trường yêu cầu hình ảnh vào đây để khi người dùng ấn là có thì sẽ hiển thị ô thêm ảnh
+
 class Option(models.Model):
     type=models.CharField(max_length=30, null=True)
     product = models.ForeignKey('Product', null=True, blank=True,related_name='product_options',on_delete=models.CASCADE)

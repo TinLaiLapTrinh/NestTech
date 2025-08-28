@@ -322,30 +322,29 @@ class ProductVariantSerializer(serializers.ModelSerializer):
         product = self.context.get("product")
         if not product:
             raise ValidationError("Product is required in context.")
-        print(value)
-        # Lấy tất cả Option của product
+        
         required_options = product.options.all()
         required_option_ids = set(required_options.values_list("id", flat=True))
 
-        # Lấy các OptionValue từ value
+
         option_values_qs = OptionValue.objects.filter(id__in=value)
         option_ids_from_value = list(option_values_qs.values_list("option_id", flat=True))
 
-        # 1. Kiểm tra không có 2 giá trị cùng 1 Option
+
         if len(option_ids_from_value) != len(set(option_ids_from_value)):
             raise ValidationError(
                 "Một Variant không được có 2 giá trị của cùng một Option "
                 "(ví dụ: không được có 2 màu sắc hoặc 2 kích thước)."
             )
 
-        # 2. Kiểm tra đủ Option
+
         if set(option_ids_from_value) != required_option_ids:
             raise ValidationError(
                 f"Variant phải chứa đúng một giá trị cho mỗi Option. "
                 f"Yêu cầu: {list(required_option_ids)}, nhận: {list(set(option_ids_from_value))}"
             )
 
-        # 3. Kiểm tra tất cả giá trị thuộc về sản phẩm
+
         valid_option_value_ids = OptionValue.objects.filter(
             option__in=required_options
         ).values_list("id", flat=True)
@@ -410,6 +409,18 @@ class ProductOptionSetupSerializer(serializers.Serializer):
             "product": product,
             "options": OptionSerializer(product.product_options.all(), many=True).data,
         }
+    
+class ProductOptionValueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OptionValue
+        fields = ['id', 'value']
+
+class ProductOptionSerializer(serializers.ModelSerializer):
+    values = ProductOptionValueSerializer(source ="option_values",many=True, read_only=True)
+
+    class Meta:
+        model = Option
+        fields = ['id', 'type', 'values']
 
 class ProductListSerializer(serializers.ModelSerializer):
     images = ImageSerializer(many=True, read_only=True)
@@ -433,9 +444,23 @@ class ProductListSerializer(serializers.ModelSerializer):
             'province', 'ward','sold_quantity'
         ]
 
+class ProductVariantGetComponentSerializer(serializers.ModelSerializer):
+    option_values = serializers.SerializerMethodField()
+    
+
+    class Meta:
+        model = ProductVariant
+        fields = ['id', 'price', 'stock', 'option_values']
+
+    def get_option_values(self, obj):
+        values = OptionValue.objects.filter(
+            variant_option_values__product_variant=obj
+        )
+        return OptionValueGetSerializer(values, many=True).data
+
 class ProductDetailSerializer(serializers.ModelSerializer):
     images = ImageSerializer(many=True, read_only=True)
-    variants = ProductVariantGetSerializer(source='product_variant', many=True, read_only=True)
+    variants = ProductVariantGetComponentSerializer(source='product_variant', many=True, read_only=True)
     options = OptionGetSerializer(source='product_options', many=True, read_only=True)
 
     owner = serializers.SerializerMethodField()
