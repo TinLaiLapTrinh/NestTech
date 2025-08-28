@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.decorators import action
 from accounts.perms import IsSupplier
@@ -14,6 +14,8 @@ from .serializers import (CategorySerializer,
                         ProductSerializer,
                         ProductVariantGetSerializer,
                         ProductVariantUpdateSerializer,
+                        ProductVariantGetComponentSerializer,
+                        ProductOptionSerializer,
                         OptionGetSerializer,
                         OptionSerializer,
                         ProductOptionSetupSerializer,
@@ -69,8 +71,8 @@ class ProductViewSet(viewsets.GenericViewSet,
             return ProductOptionSetupSerializer
         elif self.action == 'add_variant':
             return ProductVariantSerializer
-        # elif self.action=='add_option':
-        #     return OptionSerializer
+        elif self.action=='get_options':
+            return ProductOptionSerializer
         elif self.action in ['my_products','list']:
             return ProductListSerializer
         elif self.action =='retrieve':
@@ -141,6 +143,12 @@ class ProductViewSet(viewsets.GenericViewSet,
         instance.save(update_fields=["is_deleted", "active"])
         return Response({"message": "Product soft deleted successfully!"}, status=status.HTTP_200_OK)
     
+    def retrieve(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        product = get_object_or_404(queryset, pk=kwargs.get("pk"))
+        serializer = self.get_serializer(product)
+        return Response(serializer.data)
+    
     @action(detail=True, methods=['post'], url_path='option-setup')
     def option_setup(self, request, pk=None):
         try:
@@ -178,6 +186,16 @@ class ProductViewSet(viewsets.GenericViewSet,
             variant = serializer.save()
             return Response({"message": "Variant added successfully!", "variant_id": variant.id}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+      
+    @action(detail=True, methods=['get'], url_path='get-options')
+    def get_options(self, request, pk=None):
+        product = self.get_object()
+        
+        options = product.product_options.all()  # giả sử Product có quan hệ ManyToMany đến ProductOption
+        serializer = ProductOptionSerializer(options, many=True)
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
     
     @action(detail=False, methods=['get'], url_path='deleted')
     def deleted_products(self, request):
@@ -218,8 +236,10 @@ class ProductVariantViewSet(viewsets.GenericViewSet,
         return [AllowAny()]
 
     def get_serializer_class(self):
-        if self.action in ['list', 'retrieve']:
+        if self.action == 'retrieve':
             return ProductVariantGetSerializer
+        elif self.action == 'list':
+            return ProductVariantGetComponentSerializer
         return ProductVariantUpdateSerializer
 
     def update(self, request, *args, **kwargs):
