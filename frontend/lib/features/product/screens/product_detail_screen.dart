@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/features/checkout/services/checkout_service.dart';
 import 'package:frontend/features/product/models/product_detail_model.dart';
 import 'package:intl/intl.dart';
 
@@ -16,6 +17,7 @@ class ProductDetailScreen extends StatefulWidget {
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   late Future<ProductDetailModel> _productFuture;
   final NumberFormat _formatter = NumberFormat("#,###", "vi_VN");
+  int _quantity = 1;
 
   Map<String, String?> selectedOptions = {}; // Lưu lựa chọn
 
@@ -40,6 +42,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       if (ok) return variant;
     }
     return null;
+  }
+
+  /// Lấy thumbnail variant / fallback product
+  String getThumbnail(ProductVariant variant, ProductDetailModel product) {
+    if (variant.product?.image.isNotEmpty == true) {
+      return variant.product!.image;
+    } else if (product.images.isNotEmpty) {
+      return product.images[0].image;
+    } else {
+      return "https://via.placeholder.com/100";
+    }
   }
 
   @override
@@ -87,7 +100,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-
                         matchedVariant != null
                             ? Text(
                                 "${_formatter.format(matchedVariant.price)} đ",
@@ -105,7 +117,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   color: Colors.redAccent,
                                 ),
                               ),
-
                         const SizedBox(height: 4),
                         Text("Đã bán: ${product.soldQuantity}"),
                       ],
@@ -162,7 +173,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             );
                           }),
                         ],
-
                         if (matchedVariant != null) ...[
                           Text("Kho: ${matchedVariant.stock}"),
                         ],
@@ -172,25 +182,141 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                   const Divider(),
 
-                  // Gian hàng + vị trí
+                  // Số lượng + thêm vào giỏ
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          "Gian hàng",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove),
+                              onPressed: () {
+                                if (_quantity > 1) setState(() => _quantity--);
+                              },
+                            ),
+                            Text(
+                              "$_quantity",
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.add),
+                              onPressed: () {
+                                setState(() => _quantity++);
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 14),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                            onPressed: (matchedVariant == null)
+                                ? null
+                                : () async {
+                                    try {
+                                      // Thêm vào giỏ
+                                      await CheckoutService.addToCart(
+                                          matchedVariant.id, _quantity);
+
+                                      if (!mounted) return;
+
+                                      // Option description
+                                      final optionDesc = matchedVariant.optionValues
+                                          .map((ov) => "${ov.option.type}: ${ov.value}")
+                                          .join(", ");
+
+                                      // Thumbnail
+                                      final thumbnail =
+                                          getThumbnail(matchedVariant, product);
+
+                                      // Hiển thị Bottom Sheet
+                                      showModalBottomSheet(
+                                        context: context,
+                                        shape: const RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.vertical(
+                                              top: Radius.circular(16)),
+                                        ),
+                                        builder: (_) {
+                                          return Padding(
+                                            padding: const EdgeInsets.all(16.0),
+                                            child: Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  child: Image.network(
+                                                    thumbnail,
+                                                    width: 80,
+                                                    height: 80,
+                                                    fit: BoxFit.cover,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(
+                                                        product.name,
+                                                        style: const TextStyle(
+                                                            fontSize: 16,
+                                                            fontWeight:
+                                                                FontWeight.bold),
+                                                      ),
+                                                      const SizedBox(height: 4),
+                                                      Text(
+                                                        optionDesc.isNotEmpty
+                                                            ? optionDesc
+                                                            : "Mặc định",
+                                                        style: const TextStyle(
+                                                            color: Colors.grey),
+                                                      ),
+                                                      const SizedBox(height: 6),
+                                                      Text(
+                                                        "Số lượng: $_quantity",
+                                                        style: const TextStyle(
+                                                            fontSize: 14),
+                                                      ),
+                                                      const SizedBox(height: 6),
+                                                      Text(
+                                                        "Giá: ${_formatter.format(matchedVariant.price)} đ",
+                                                        style: const TextStyle(
+                                                            fontSize: 15,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color:
+                                                                Colors.redAccent),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    } catch (e) {
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text("Lỗi: $e")));
+                                    }
+                                  },
+                            child: const Text(
+                              "Thêm vào giỏ hàng",
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "Chủ shop: ${product.owner.name} (ID: ${product.owner.id})",
-                        ),
-                        Text(
-                          "Khu vực: ${product.location.province ?? "-"}, ${product.location.ward ?? "-"}",
                         ),
                       ],
                     ),

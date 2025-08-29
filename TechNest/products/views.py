@@ -161,18 +161,6 @@ class ProductViewSet(viewsets.GenericViewSet,
         return Response({"message": "Option added successfully!"}, status=status.HTTP_201_CREATED)
     
 
-    # @action(detail=True,methods=['post'], url_path='add-option')
-    # def add_option(self,request,pk=None):
-    #     try:
-    #         product = self.get_object()
-    #     except:
-    #         return Response({"detail":"product not found"},status=status.HTTP_404_NOT_FOUND)
-    #     serializer = self.get_serializer(data=request.data, context={'product': product})
-    #     if serializer.is_valid():
-    #         variant = serializer.save()
-    #         return Response({"message": "Option added successfully!", "variant_id": variant.id}, status=status.HTTP_201_CREATED)
-    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
     @action(detail=True, methods=['post'], url_path='add-variant')
     def add_variant(self,request,pk=None):
         try:
@@ -274,7 +262,17 @@ class OrderRequestViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins
             return OrderDetail.objects.none()
         return OrderDetail.objects.filter(product__product__owner = self.request.user)
     
+    def list(self, request):
+        search = request.query_params.get("search")
+        delivery_status = request.query_params.get("delivery_status")
+        queryset = self.get_queryset().select_related('product', 'order')
+        if delivery_status:
+            queryset = queryset.filter(
+                delivery_status = delivery_status
+            )
 
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 

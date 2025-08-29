@@ -4,7 +4,6 @@ import 'package:frontend/features/location/models/location_model.dart';
 import 'package:frontend/features/location/services/location_service.dart';
 import 'package:latlong2/latlong.dart';
 
-
 class MapFilterScreen extends StatefulWidget {
   const MapFilterScreen({super.key});
 
@@ -98,37 +97,43 @@ class _MapFilterScreenState extends State<MapFilterScreen> {
               mapController: _mapController,
               options: MapOptions(
                 initialCenter: _initialPosition,
-                initialZoom: 15, // zoom chi tiết
+                initialZoom: 15,
                 minZoom: 3,
                 maxZoom: 20,
                 interactionOptions: const InteractionOptions(
-                  flags:
-                      InteractiveFlag.drag |
-                      InteractiveFlag.pinchZoom, // tắt xoay
+                  flags: InteractiveFlag.drag | InteractiveFlag.pinchZoom,
                 ),
+                // 👇 Thêm onTap
+                onTap: (tapPosition, latlng) {
+                  setState(() {
+                    _selectedPoint = latlng;
+                  });
+                },
               ),
               children: [
                 TileLayer(
                   urlTemplate:
                       "https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}",
                   additionalOptions: {
-                    'accessToken': '',
+                    'accessToken':
+                        'pk.eyJ1IjoidHJvbmd0aW4xMjkyMDA0IiwiYSI6ImNtZXZsMnhnbzBlbmUyaW9kcjhsb2k2cXAifQ.EmlCJ9BsD-p2C5nr_dlOYA',
                     'id':
                         'mapbox/streets-v11', // style chi tiết, có nhãn cửa hàng
                   },
                 ),
                 MarkerLayer(
                   markers: [
-                    Marker(
-                      point: _selectedPoint ?? _initialPosition,
-                      width: 50,
-                      height: 50,
-                      child: const Icon(
-                        Icons.location_on,
-                        color: Colors.red,
-                        size: 40,
+                    if (_selectedPoint != null)
+                      Marker(
+                        point: _selectedPoint!,
+                        width: 50,
+                        height: 50,
+                        child: const Icon(
+                          Icons.location_on,
+                          color: Colors.red,
+                          size: 40,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ],

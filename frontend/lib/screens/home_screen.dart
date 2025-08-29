@@ -4,6 +4,7 @@ import 'package:frontend/features/auth/screens/login_screen.dart';
 import 'package:frontend/features/checkout/screens/cart_screen.dart';
 import 'package:frontend/features/checkout/screens/order_request_screen.dart';
 import 'package:frontend/features/checkout/screens/order_screen.dart';
+import 'package:frontend/features/location/screens/location_manager_screen.dart';
 import 'package:frontend/features/location/screens/map_screen.dart';
 import 'package:frontend/features/product/screens/my_product_screen.dart';
 import 'package:frontend/features/product/screens/product_list_screen.dart';
@@ -65,6 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
       const ProductListScreen(),
       const MyCartItemsScreen(),
       const OrderScreen(),
+      const LocationManagerScreen(),
       isLoggedIn
           ? Center(
               child: Column(

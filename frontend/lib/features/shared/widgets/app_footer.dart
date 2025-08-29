@@ -55,6 +55,10 @@ class AppFooter extends StatelessWidget {
           icon: Icon(Icons.receipt_long),
           label: "Đơn hàng",
         ),
+         const BottomNavigationBarItem(
+          icon: Icon(Icons.location_on),
+          label: "Quản lý vị trí",
+        ),
         BottomNavigationBarItem(
           icon: Icon(isLoggedIn ? Icons.person : Icons.login),
           label: isLoggedIn ? "Cá nhân" : "Đăng nhập",

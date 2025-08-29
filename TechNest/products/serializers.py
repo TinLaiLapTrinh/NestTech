@@ -500,7 +500,6 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
 class OrderRequestSerializer(serializers.ModelSerializer):
     product_variant = ProductVariantGetSerializer(source='product', read_only=True)
-    image = serializers.SerializerMethodField()
 
     class Meta:
         model = OrderDetail   
@@ -508,13 +507,7 @@ class OrderRequestSerializer(serializers.ModelSerializer):
             "id", "quantity", "price", "delivery_charge",
             "delivery_status", "delivery_method",
             "product_variant", "delivery_route",
-            "image"
         ]
 
-    def get_image(self, obj):
-        # obj.product = ProductVariant
-        product = obj.product.product  
-        if product.images.exists():
-            return product.images.first().image.url
-        return None
+
 

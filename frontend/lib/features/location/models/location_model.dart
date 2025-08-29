@@ -1,3 +1,5 @@
+
+
 class Province {
   final String code;
   final String name;
@@ -27,3 +29,40 @@ class Ward {
     );
   }
 }
+
+class UserLocation {
+  final String provinceCode;
+  final String wardCode;
+  final String address;
+  final double latitude;
+  final double longitude;
+
+  UserLocation({
+    required this.provinceCode,
+    required this.wardCode,
+    required this.address,
+    required this.latitude,
+    required this.longitude,
+  });
+
+  factory UserLocation.fromJson(Map<String, dynamic> json) {
+    return UserLocation(
+      provinceCode: json['province'] ?? '',
+      wardCode: json['ward'] ?? '',
+      address: json['address'] ?? '',
+      latitude: (json['latitude'] as num).toDouble(),
+      longitude: (json['longitude'] as num).toDouble(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "province": provinceCode,
+      "ward": wardCode,
+      "address": address,
+      "latitude": latitude,
+      "longitude": longitude,
+    };
+  }
+}
+

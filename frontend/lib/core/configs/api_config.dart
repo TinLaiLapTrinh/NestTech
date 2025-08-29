@@ -19,6 +19,8 @@ class ApiConfig {
   // Location
   static String getProvinces = "/provinces/";
   static String getWards(String id) => "/provinces/$id/wards/";
+  static String getLocation = "/user-location";
+  static String addUserLocation="/user-location/";
 
   // User
   static const String profileUser = "/users/current-user/";

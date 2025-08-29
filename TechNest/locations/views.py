@@ -1,6 +1,6 @@
 from rest_framework import generics, mixins, viewsets, status
 from rest_framework.permissions import IsAuthenticated
-from locations.serializers import  ProvinceSerializer, WardSerializer, UserLocationSerializer
+from locations.serializers import  ProvinceSerializer, WardSerializer, UserLocationSerializer, ShippingRouteSerializer
 from .models import Province, Ward, UserLocation
 
 from rest_framework.decorators import action
@@ -21,6 +21,9 @@ class ProvinceViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
         wards = Ward.objects.filter(province_id=pk)
         serializer = WardSerializer(wards, many=True)
         return Response(serializer.data)
+    
+class ShippingRouteViewSet(viewsets.generics, mixins.ListModelMixin,mixins.RetrieveModelMixin):
+    serializer_class = ShippingRouteSerializer
 
 class UserLocationViewSet(viewsets.ModelViewSet):
     serializer_class = UserLocationSerializer
@@ -39,7 +42,7 @@ class UserLocationViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         order = self.perform_create(serializer)
         return Response(
-            {"message": "order created successfully!", "location": serializer.instance.id},
+            {"message": "location created successfully!", "location": serializer.instance.id},
             status=status.HTTP_201_CREATED
         )
 
