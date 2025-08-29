@@ -1,0 +1,49 @@
+class ApiConfig {
+  static const String baseUrl = "http://10.189.114.149:8000";
+
+  // Auth
+  static const String tokenEndpoint = "/o/token/";
+
+  // Product
+  static const String productList = "/products/";
+  static const String categoryList = "/category/";
+  static const String myProductList = "/products/my-product/";
+  static String productDetail(int id) => "/products/$id/";
+  static String productDelete(int id) => "/products/$id/";
+  static String categorySelect(int id) => "/category/$id/";
+  static String productOptionSetup(int id) => "/products/$id/option-setup/";
+  static String productVariants(int id) => "/product/$id/variant/";
+  static String productVariantDetai(int id, int idVariant) => "/product/$id/variant/$idVariant/";
+  static String options(int id)=>"/products/$id/get-options/";
+  
+  // Location
+  static String getProvinces = "/provinces/";
+  static String getWards(String id) => "/provinces/$id/wards/";
+
+  // User
+  static const String profileUser = "/users/current-user/";
+  static String customerRegister = "/users/customer-register/";
+  static String supplierRegister = "/users/supplier-register/";
+  static String followers = "follow/followers/";
+  static String followings = "follow/followings/";
+  static String unFollow(int id) => "follow/$id/unfollow/";
+  static String isFollowing(int id) => "follow/$id/is-following/";
+
+  // order
+  static String addOrder = "/order/";
+  static String getOrder = "/order/";
+  static String detailOrder(int id) => "/order/$id/";
+  static String deleteOrderDetailItem(int id, int idItem) => "/order/$id/delete-order-detail/$idItem/";
+  static String orderRequest = "/order-request/";
+  static String orderRequestUpdate(int id) =>"order-request/$id/";
+
+  // cart
+  static String shoppingCart = "/shoppingcart/";
+  static String shoppingCartAddItems = "/shoppingcart/add-item/";
+  static String shoppingCartDeteteItem(int idItem)=>"/shoppingcart/delete-item/$idItem/";
+  static String shoppingCartItems = "/shoppingcart/items/";
+  static String shoppingCartUpdateItem(int idItem) => "/shoppingcart/update-item/$idItem/"; 
+
+
+
+}

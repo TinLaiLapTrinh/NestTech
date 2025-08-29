@@ -1,0 +1,15 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual env
+.venv/
+env/
+ENV/
+venv/
+
+# Django stuff
+*.log
+db.sqlite3
+*.sqlite3-journal
