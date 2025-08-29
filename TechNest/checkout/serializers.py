@@ -4,7 +4,7 @@ from utils.choice import UserType, DeliveryMethods, DeliveryStatus
 from utils.serializers import ImageSerializer
 from .models import Order,OrderDetail,ShoppingCart, ShoppingCartItem
 from products.models import ProductVariant, Product, VariantOptionValue
-from locations.models import ShippingRoute
+from locations.models import ShippingRoute, ShippingRate
 from products.serializers import ProductVariantGetSerializer
 from django.db import transaction
 import json
@@ -229,3 +229,5 @@ class OrderSerializer(serializers.ModelSerializer):
             order.save()
 
         return order
+    
+

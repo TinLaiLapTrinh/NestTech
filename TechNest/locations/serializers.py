@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import  Province, Ward, UserLocation
+from .models import  Province, Ward, UserLocation, ShippingRoute,ShippingRate
 
         
 class ProvinceSerializer(serializers.ModelSerializer):
@@ -37,3 +37,14 @@ class UserLocationSerializer(serializers.ModelSerializer):
         data['province'] = instance.province.name if instance.province else None
         data['ward'] = instance.ward.name if instance.ward else None
         return data
+    
+class ShippingRateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShippingRate
+        fields =["method","price"]
+    
+class ShippingRouteSerializer(serializers.ModelSerializer):
+    shipping_rates = ShippingRateSerializer(source="rates", many=True)
+    class Meta:
+        model = ShippingRoute
+        fields = ["origin_region", "destination_region", "shipping_rates"]

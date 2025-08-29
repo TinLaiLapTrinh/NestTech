@@ -21,6 +21,28 @@ class CheckoutService {
     }
   }
 
+  static Future<dynamic> addToCart(int productId, int quantity) async{
+    final header = await ApiHeaders.getAuthHeaders();
+    final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.shoppingCartAddItems);
+    final body = {
+      "product": productId,
+      "quantity" : quantity
+    };
+    final response = await http.post(
+        uri,
+        headers: header,
+        body: jsonEncode(body),
+      );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception(
+            "Lỗi khi thêm location: ${response.statusCode} - ${response.body}");
+      }
+
+  }
+
   static Future<dynamic> updateCartItem(int idItem, int quantity) async {
     final headers = await ApiHeaders.getAuthHeaders();
     final uri = Uri.parse(
@@ -86,9 +108,9 @@ class CheckoutService {
     }
   }
 
-  static Future<List<dynamic>> orderRequest() async {
+  static Future<List<dynamic>> orderRequest(Map<String,String>? params ) async {
   final header = await ApiHeaders.getAuthHeaders();
-  final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.orderRequest);
+  final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.orderRequest).replace(queryParameters: params);
 
   final response = await http.get(uri, headers: header);
 
