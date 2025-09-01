@@ -137,6 +137,7 @@ class OrderViewSet(viewsets.GenericViewSet,
         serializer.save(owner=self.request.user)
 
     def create(self, request, *args, **kwargs):
+        print(self.request.data)
         """Custom response JSON"""
         serializer = self.get_serializer(
             data=request.data,

@@ -34,7 +34,7 @@ class ProductApproved(ModelAdmin):
     fieldsets = [
         ("Status", {"fields": ["status"]}),
         ("Detail", {"fields": ["name", "owner","category"]}),
-        ("Location", {"fields": ["address", "province", "ward"]}),
+        ("Location", {"fields": ["address", "province","district", "ward"]}),
         ("Images", {"fields": ["image_gallery"]}),
     ]
 
@@ -89,6 +89,9 @@ class ProductApproved(ModelAdmin):
         else:
             obj.active = False
         super().save_model(request, obj, form, change)
+    
+    class Media:
+        js = ("js/locations.js",)
 
 
 technest_admin_site.register(Category, CategoryAdmin)

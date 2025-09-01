@@ -15,9 +15,8 @@ class _MyCartItemsScreenState extends State<MyCartItemsScreen> {
   List<dynamic> _myCartItems = [];
   bool _isLoading = true;
 
-  // Map để lưu timer của từng item
   final Map<int, Timer?> _updateTimers = {};
-  // Map để lưu trạng thái chọn item
+
   final Map<int, bool> _selectedItems = {};
 
   @override
@@ -30,9 +29,10 @@ class _MyCartItemsScreenState extends State<MyCartItemsScreen> {
     final items = await CheckoutService.getCartItems();
     setState(() {
       _myCartItems = items;
+
       _isLoading = false;
       for (var item in items) {
-        _selectedItems[item['id']] = false; // mặc định chưa chọn
+        _selectedItems[item['id']] = false;
       }
     });
   }
@@ -52,7 +52,7 @@ class _MyCartItemsScreenState extends State<MyCartItemsScreen> {
   void _changeQuantity(int index, int delta) {
     final item = _myCartItems[index];
     final newQuantity = (item['quantity'] as int) + delta;
-    if (newQuantity <= 0) return; // không cho < 1
+    if (newQuantity <= 0) return;
 
     setState(() {
       _myCartItems[index]['quantity'] = newQuantity;
@@ -62,33 +62,37 @@ class _MyCartItemsScreenState extends State<MyCartItemsScreen> {
   }
 
   void _goToOrderForm() {
-  final selected = _myCartItems.where((item) => _selectedItems[item['id']] == true).toList();
-  if (selected.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Vui lòng chọn ít nhất 1 sản phẩm để đặt hàng")),
+    final selected = _myCartItems
+        .where((item) => _selectedItems[item['id']] == true)
+        .toList();
+    if (selected.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Vui lòng chọn ít nhất 1 sản phẩm để đặt hàng"),
+        ),
+      );
+      return;
+    }
+
+    final orderItems = selected.map((item) {
+      final variant = item["product"];
+      final baseProduct = variant["product"];
+
+      return {
+        "variant":
+            variant, // giữ nguyên variant (chứa id, price, stock, option_values…)
+        "base_product": baseProduct, // giữ thêm base product (name, image…)
+        "quantity": item["quantity"], // số lượng
+      };
+    }).toList();
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OrderFormScreen(orderItems: orderItems),
+      ),
     );
-    return;
   }
-
-
-  final orderItems = selected.map((item) {
-    final variant = item["product"];
-    final baseProduct = variant["product"];
-    return {
-      "variant": variant,              // giữ nguyên variant (chứa id, price, stock, option_values…)
-      "base_product": baseProduct,     // giữ thêm base product (name, image…)
-      "quantity": item["quantity"],    // số lượng
-    };
-  }).toList();
-
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => OrderFormScreen(orderItems: orderItems),
-    ),
-  );
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -147,20 +151,34 @@ class _MyCartItemsScreenState extends State<MyCartItemsScreen> {
                                     Wrap(
                                       spacing: 4,
                                       runSpacing: 2,
-                                      children: (variant['option_values'] as List)
-                                          .map((opt) => Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                    vertical: 2, horizontal: 4),
-                                                decoration: BoxDecoration(
-                                                  border: Border.all(color: Colors.grey.shade300),
-                                                  borderRadius: BorderRadius.circular(4),
+                                      children:
+                                          (variant['option_values'] as List)
+                                              .map(
+                                                (opt) => Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        vertical: 2,
+                                                        horizontal: 4,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    border: Border.all(
+                                                      color:
+                                                          Colors.grey.shade300,
+                                                    ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          4,
+                                                        ),
+                                                  ),
+                                                  child: Text(
+                                                    opt['value'],
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                    ),
+                                                  ),
                                                 ),
-                                                child: Text(
-                                                  opt['value'],
-                                                  style: const TextStyle(fontSize: 11),
-                                                ),
-                                              ))
-                                          .toList(),
+                                              )
+                                              .toList(),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
@@ -181,7 +199,8 @@ class _MyCartItemsScreenState extends State<MyCartItemsScreen> {
                                       children: [
                                         IconButton(
                                           icon: const Icon(Icons.remove),
-                                          onPressed: () => _changeQuantity(index, -1),
+                                          onPressed: () =>
+                                              _changeQuantity(index, -1),
                                         ),
                                         Text(
                                           "${p['quantity']}",
@@ -192,7 +211,8 @@ class _MyCartItemsScreenState extends State<MyCartItemsScreen> {
                                         ),
                                         IconButton(
                                           icon: const Icon(Icons.add),
-                                          onPressed: () => _changeQuantity(index, 1),
+                                          onPressed: () =>
+                                              _changeQuantity(index, 1),
                                         ),
                                       ],
                                     ),

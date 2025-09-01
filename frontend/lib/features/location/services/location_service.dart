@@ -19,8 +19,22 @@ class LocationService {
     }
   }
 
-  static Future<List<Ward>> getWards(String provinceCode) async {
-    final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.getWards(provinceCode));
+  static Future<List<District>> getDistricts(String provinceCode) async {
+    final url = Uri.parse(
+      ApiConfig.baseUrl + ApiConfig.getDistrict(provinceCode),
+    );
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final List data = json.decode(response.body);
+      return data.map((e) => District.fromJson(e)).toList();
+    } else {
+      throw Exception('Failed to load district');
+    }
+  }
+
+  static Future<List<Ward>> getWards(String districtId) async {
+    final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.getWards(districtId));
     final response = await http.get(url);
 
     if (response.statusCode == 200) {
@@ -31,15 +45,43 @@ class LocationService {
     }
   }
 
-  static Future<List<UserLocation>> getLocation()async{
+  static Future<List<UserLocation>> getLocation() async {
     final header = await ApiHeaders.getAuthHeaders();
     final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.getLocation);
     final response = await http.get(uri, headers: header);
-    if( response.statusCode ==200){
+    if (response.statusCode == 200) {
       final data = json.decode(response.body) as List;
-      return data.map((e)=> UserLocation.fromJson(e)).toList();
-    }else{
+      return data.map((e) => UserLocation.fromJson(e)).toList();
+    } else {
       throw Exception('Fail to get location');
+    }
+  }
+
+  static Future<dynamic> getShippingRoute(
+    int originRegion,
+    int destinationRegion,
+  ) async {
+    try {
+      final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.getShippingRoute)
+          .replace(
+            queryParameters: {
+              "origin": originRegion.toString(), 
+              "destination": destinationRegion.toString(),
+            },
+          );
+
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data; 
+      } else {
+        throw Exception(
+          'Failed to load shipping route: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception("Error fetching shipping route: $e");
     }
   }
 
@@ -50,11 +92,14 @@ class LocationService {
 
       final body = {
         "address": userLocation.address,
-        "province": userLocation.provinceCode,
-        "ward": userLocation.wardCode,
-        "latitude": userLocation.latitude.toString(),
-        "longitude": userLocation.longitude.toString(),
+        "province": userLocation.province.code,
+        "district": userLocation.district.code,
+        "ward": userLocation.ward.code,
+        "latitude": userLocation.latitude,
+        "longitude": userLocation.longitude,
       };
+
+      print('Sending body: $body');
 
       final response = await http.post(
         uri,
@@ -66,9 +111,11 @@ class LocationService {
         return jsonDecode(response.body);
       } else {
         throw Exception(
-            "Lỗi khi thêm location: ${response.statusCode} - ${response.body}");
+          "Lỗi khi thêm location: ${response.statusCode} - ${response.body}",
+        );
       }
     } catch (e) {
+      print('Add location error: $e');
       rethrow;
     }
   }
@@ -86,10 +133,52 @@ class LocationService {
       final data = json.decode(response.body);
       if (data['features'] != null && data['features'].isNotEmpty) {
         final coords = data['features'][0]['geometry']['coordinates'];
-        return LatLng(
-          coords[1],
-          coords[0],
-        ); // Mapbox trả về [longitude, latitude]
+        return LatLng(coords[1], coords[0]);
+      }
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> reverseGeocodeFull(
+    double latitude,
+    double longitude,
+  ) async {
+    final accessToken =
+        "pk.eyJ1IjoidHJvbmd0aW4xMjkyMDA0IiwiYSI6ImNtZXZsMnhnbzBlbmUyaW9kcjhsb2k2cXAifQ.EmlCJ9BsD-p2C5nr_dlOYA";
+
+    final url = Uri.parse(
+      'https://api.mapbox.com/geocoding/v5/mapbox.places/$longitude,$latitude.json?access_token=$accessToken&limit=1',
+    );
+
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['features'] != null && data['features'].isNotEmpty) {
+        final feature = data['features'][0];
+        final context = feature['context'] ?? [];
+
+        String? province;
+        String? district;
+        String? ward;
+
+        for (var item in context) {
+          final id = item['id'] as String;
+          if (id.startsWith('region')) {
+            province = item['text'];
+          } else if (id.startsWith('district')) {
+            district = item['text'];
+          } else if (id.startsWith('place') || id.startsWith('locality')) {
+            ward = item['text'];
+          }
+        }
+
+        return {
+          "province": province,
+          "district": district,
+          "ward": ward,
+          "fullAddress": feature['place_name'],
+        };
       }
     }
     return null;

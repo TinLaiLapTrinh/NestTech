@@ -146,7 +146,7 @@ class _MyProductDetailScreenState extends State<MyProductDetailScreen> {
               icon: const Icon(Icons.add),
               label: const Text("Thêm thuộc tính"),
             ),
-            // Variants
+
             if (p.variants.isNotEmpty) ...[
               const Text(
                 "Biến thể:",
@@ -173,9 +173,8 @@ class _MyProductDetailScreenState extends State<MyProductDetailScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => VariantListPage(
-                            productId: widget.productId
-                          ),
+                          builder: (_) =>
+                              VariantListPage(productId: widget.productId),
                         ),
                       );
                     },
@@ -191,6 +190,38 @@ class _MyProductDetailScreenState extends State<MyProductDetailScreen> {
                     child: const Text("Xóa / Ẩn"),
                   ),
                 ),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      try {
+                        // Gọi API generate variant
+                        final variants = await ProductService.generateVariants(
+                          p.id,
+                        );
+
+                        // Hiển thị kết quả (ví dụ SnackBar)
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("Đã tạo ${variants.length} variant"),
+                          ),
+                        );
+
+
+                        setState(() {
+                          
+                          _loadDetail();
+                        });
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Lỗi khi tạo variant: $e")),
+                        );
+                      }
+                    },
+                    child: const Text("Biến thể"),
+                  ),
+                ),
+
+                const SizedBox(width: 10),
               ],
             ),
           ],

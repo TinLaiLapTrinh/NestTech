@@ -48,7 +48,7 @@ ALLOWED_HOSTS = [
 
 
 STATICFILES_DIRS = [
-    # BASE_DIR / "static",  # nếu có thư mục static trong dự án
+    BASE_DIR / "static",  # nếu có thư mục static trong dự án
 ]
 
 STATIC_ROOT = BASE_DIR / "staticfiles"  # để collectstatic khi deploy

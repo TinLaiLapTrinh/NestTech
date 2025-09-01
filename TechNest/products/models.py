@@ -32,6 +32,12 @@ class Product(BaseModel):
         related_name='products',
         null=True
     )
+    district = models.ForeignKey(
+        "locations.District",
+        on_delete=models.SET_NULL,
+        related_name='products',
+        null=True
+    )
     ward = models.ForeignKey(
         "locations.Ward",
         on_delete=models.SET_NULL,
@@ -44,13 +50,12 @@ class Product(BaseModel):
     def save(self, *args, **kwargs):
         is_new = self.pk is None
         super().save(*args, **kwargs)
-        # Nếu là product mới và có min_price thì tạo variant ngay
         if is_new and self.min_price is not None:
             ProductVariant.objects.create(
                 product=self,
                 price=self.min_price,
-                stock=0,  # stock mặc định
-                sku=f"{self.id}-{int(self.min_price)}"  # tạo SKU tự động
+                stock=0,  
+                sku=f"{self.id}-{int(self.min_price)}" 
             )
 
 
@@ -77,7 +82,7 @@ class OptionValueImage(Image):
 
 class ProductVariant(BaseModel):
     price = models.FloatField(default=0.0)
-    product = models.ForeignKey('Product',related_name='product_variant', on_delete=models.PROTECT)
+    product = models.ForeignKey('Product',related_name='product_variants', on_delete=models.PROTECT)
     stock = models.PositiveIntegerField(default=0)
     sku = models.CharField(max_length=20, null=True, unique=True)
     

@@ -3,7 +3,7 @@ from .models import User, Follow
 from checkout.models import ShoppingCart
 from products.models import Category, Product, ProductImage
 from utils.serializers import ImageSerializer
-from locations.models import Province, Ward
+from locations.models import Province,District, Ward
 from utils.choice import UserType
 from django.db import transaction
 
@@ -100,6 +100,7 @@ class SupplierRegister(serializers.ModelSerializer):
     product_name = serializers.CharField()
     product_address = serializers.CharField()
     product_province = serializers.PrimaryKeyRelatedField(queryset=Province.objects.all())
+    product_district = serializers.PrimaryKeyRelatedField(queryset=District.objects.all())
     product_ward = serializers.PrimaryKeyRelatedField(queryset=Ward.objects.all())
     product_description = serializers.CharField()
     product_category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all())
@@ -118,7 +119,7 @@ class SupplierRegister(serializers.ModelSerializer):
             "dob", "email", "address", "phone_number",
 
             "product_name", "product_min_price", "product_max_price",
-            "product_description", "product_category", "product_province",
+            "product_description", "product_category", "product_province", "product_district",
             "product_ward", "product_address", "product_upload_images"
         ]
         extra_kwargs = {"password": {"write_only": True}}
@@ -172,6 +173,7 @@ class SupplierRegister(serializers.ModelSerializer):
             "name": validated_data.pop("product_name"),
             "address": validated_data.pop("product_address"),
             "province": validated_data.pop("product_province"),
+            "district": validated_data.pop("product_district"),
             "ward": validated_data.pop("product_ward"),
             "description": validated_data.pop("product_description"),
             "category": validated_data.pop("product_category"),

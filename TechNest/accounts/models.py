@@ -9,7 +9,7 @@ from TechNest import settings
 
 class User(AbstractUser):
     user_type = models.CharField(
-        max_length=10,
+        max_length=20,
         choices=choice.UserType,
         default=choice.UserType.CUSTOMER,
         null=False

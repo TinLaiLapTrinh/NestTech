@@ -10,8 +10,9 @@ from checkout.models import OrderDetail
 from itertools import product as cartesian_product
 from django.db import transaction
 import json
-from locations.models import Province,Ward
+from locations.models import Province,Ward, District
 from rest_framework.response import Response
+import itertools
 
 
 
@@ -44,6 +45,8 @@ class ProductSerializer(serializers.ModelSerializer):
         if instance.province:
             data["province"] = instance.province.full_name
 
+        if instance.district:
+            data["district"] = instance.district.full_name
 
         if instance.ward:
             data["ward"] = instance.ward.full_name
@@ -63,6 +66,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "images",
             "upload_images",
             "province",
+            "district",
             "ward",
             "active"
             
@@ -80,22 +84,38 @@ class ProductSerializer(serializers.ModelSerializer):
         category = data.get('category') or getattr(self.instance, 'category', None)
         max_price = data.get('max_price') if 'max_price' in data else getattr(self.instance, 'max_price', None)
         min_price = data.get('min_price') if 'min_price' in data else getattr(self.instance, 'min_price', None)
-        province = data.get('province') or getattr(self.instance, 'province', None)
-        ward = data.get('ward') or getattr(self.instance, 'ward', None)
-        ward_located = Ward.objects.filter(code=getattr(ward, 'code', None)).first() if ward else None
 
+        province = data.get('province') or getattr(self.instance, 'province', None)
+        district = data.get('district') or getattr(self.instance, 'district', None)
+        ward = data.get('ward') or getattr(self.instance, 'ward', None)
+
+        # Lấy lại object trong DB để so sánh quan hệ
+        ward_located = Ward.objects.filter(code=getattr(ward, 'code', None)).select_related("district__province").first() if ward else None
+        district_located = District.objects.filter(code=getattr(district, 'code', None)).select_related("province").first() if district else None
+
+        # Validate các trường text
         if not name or len(name) < 3:
             raise serializers.ValidationError({"name": "Tên sản phẩm không được để trống và phải ≥3 ký tự."})
         if not description:
             raise serializers.ValidationError({"description": "Mô tả sản phẩm không được để trống."})
+
+        # Validate giá
         if max_price is not None and min_price is not None and max_price < min_price:
             raise serializers.ValidationError({"mean-price": "Khoảng giá trị không hợp lệ."})
+
+        # Validate category
         if not category or not Category.objects.filter(id=category.id).exists():
             raise serializers.ValidationError({"category": "Loại sản phẩm không tồn tại."})
-        if ward and (not ward_located or ward_located.province != province):
-            raise serializers.ValidationError({"location": "Vị trí không nhất quán."})
+
+        # Validate địa chỉ (province - district - ward phải khớp nhau)
+        if ward and (not ward_located or not district or ward_located.district != district):
+            raise serializers.ValidationError({"location": "Xã/Phường không thuộc Quận/Huyện đã chọn."})
+
+        if district and (not district_located or not province or district_located.province != province):
+            raise serializers.ValidationError({"location": "Quận/Huyện không thuộc Tỉnh/Thành đã chọn."})
 
         return data
+
 
     def validate_upload_images(self, value):
         if not value:
@@ -185,23 +205,42 @@ class ProductVariantGetSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProductVariant
-        fields = ['id', 'price', 'stock', 'product', 'option_values']
+        fields = [
+            "id",
+            "price",
+            "stock",
+            "product",
+            "option_values",
+        ]
 
     def get_option_values(self, obj):
+        """Trả về danh sách các option values của variant."""
         values = OptionValue.objects.filter(
             variant_option_values__product_variant=obj
         )
         return OptionValueGetSerializer(values, many=True).data
 
     def get_product(self, obj):
+        """Trả về thông tin cơ bản của product (id, name, ảnh, province)."""
         product = obj.product
-        # lấy ảnh đầu tiên (nếu có)
         first_image = product.images.first()
+
         return {
             "id": product.id,
             "name": product.name,
-            "image": first_image.image.url if first_image else None
+            "image": first_image.image.url if first_image else None,
+            "province": {
+                "code": product.province.code,
+                "name": product.province.name,
+                 "full_name": product.province.full_name,
+                "administrative_region": (
+                    product.province.administrative_unit.id
+                    if product.province and product.province.administrative_unit
+                    else None
+                ),
+            },
         }
+
 
 
 class OptionSerializer(serializers.ModelSerializer):
@@ -308,6 +347,58 @@ class VariantOptionValueSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return VariantOptionValue.objects.create(**validated_data)
+    
+class VariantGeneratorSerializer(serializers.Serializer):
+    product_id = serializers.IntegerField()
+
+    def validate_product_id(self, value):
+        try:
+            product = Product.objects.get(id=value)
+        except Product.DoesNotExist:
+            raise serializers.ValidationError("Product không tồn tại.")
+        if not product.product_options.exists():
+            raise serializers.ValidationError("Product chưa có option nào.")
+        return value
+
+    def create(self, validated_data):
+        product_id = validated_data["product_id"]
+        product = Product.objects.get(id=product_id)
+
+        options = product.product_options.prefetch_related("option_values")
+        option_values_sets = [list(opt.option_values.all()) for opt in options]
+
+        generated_variants = []
+
+
+        existing_variants = product.product_variants.prefetch_related("variant_option_values")
+        existing_combinations = [
+            set(v.variant_option_values.values_list("option_value_id", flat=True))
+            for v in existing_variants
+        ]
+
+        for combination in itertools.product(*option_values_sets):
+            option_value_ids = [ov.id for ov in combination]
+
+
+            if set(option_value_ids) in existing_combinations:
+                continue
+
+            serializer = ProductVariantSerializer(
+                data={
+                    "price": 0,
+                    "stock": 0,
+                    "option_values": option_value_ids,
+                },
+                context={"product": product}
+            )
+            serializer.is_valid(raise_exception=True)
+            variant = serializer.save()
+            generated_variants.append(variant)
+
+        return generated_variants
+
+    
+
 
 class ProductVariantSerializer(serializers.ModelSerializer):
     option_values = serializers.ListField(
@@ -322,8 +413,8 @@ class ProductVariantSerializer(serializers.ModelSerializer):
         product = self.context.get("product")
         if not product:
             raise ValidationError("Product is required in context.")
-        
-        required_options = product.options.all()
+
+        required_options = product.product_options.all()
         required_option_ids = set(required_options.values_list("id", flat=True))
 
 
@@ -333,17 +424,14 @@ class ProductVariantSerializer(serializers.ModelSerializer):
 
         if len(option_ids_from_value) != len(set(option_ids_from_value)):
             raise ValidationError(
-                "Một Variant không được có 2 giá trị của cùng một Option "
-                "(ví dụ: không được có 2 màu sắc hoặc 2 kích thước)."
+                "Một Variant không được có 2 giá trị của cùng một Option."
             )
-
 
         if set(option_ids_from_value) != required_option_ids:
             raise ValidationError(
                 f"Variant phải chứa đúng một giá trị cho mỗi Option. "
                 f"Yêu cầu: {list(required_option_ids)}, nhận: {list(set(option_ids_from_value))}"
             )
-
 
         valid_option_value_ids = OptionValue.objects.filter(
             option__in=required_options
@@ -354,11 +442,17 @@ class ProductVariantSerializer(serializers.ModelSerializer):
                 raise ValidationError(
                     f"Option value id={ov_id} không thuộc product '{product.name}'."
                 )
+            
+        existing_variants = product.product_variants.prefetch_related("variant_option_values")
+        for variant in existing_variants:
+            existing_ov_ids = set(
+                variant.variant_option_values.values_list("option_value_id", flat=True)
+            )
 
+            if existing_ov_ids == set(value):  
+                raise ValidationError("Variant với các OptionValue này đã tồn tại.")
         return value
-
-
-
+    
     def create(self, validated_data):
         option_values_ids = validated_data.pop("option_values", [])
         product = self.context.get("product")
@@ -460,7 +554,7 @@ class ProductVariantGetComponentSerializer(serializers.ModelSerializer):
 
 class ProductDetailSerializer(serializers.ModelSerializer):
     images = ImageSerializer(many=True, read_only=True)
-    variants = ProductVariantGetComponentSerializer(source='product_variant', many=True, read_only=True)
+    variants = ProductVariantGetComponentSerializer(source='product_variants', many=True, read_only=True)
     options = OptionGetSerializer(source='product_options', many=True, read_only=True)
 
     owner = serializers.SerializerMethodField()
@@ -496,8 +590,6 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "ward": obj.ward.name if obj.ward else None
         }
 
-
-
 class OrderRequestSerializer(serializers.ModelSerializer):
     product_variant = ProductVariantGetSerializer(source='product', read_only=True)
 
@@ -508,6 +600,3 @@ class OrderRequestSerializer(serializers.ModelSerializer):
             "delivery_status", "delivery_method",
             "product_variant", "delivery_route",
         ]
-
-
-

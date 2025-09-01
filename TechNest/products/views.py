@@ -12,8 +12,10 @@ from checkout.models import OrderDetail
 from checkout.serializers import OrderDetailSerializer
 from .serializers import (CategorySerializer,
                         ProductSerializer,
+                        ProductListSerializer,
                         ProductVariantGetSerializer,
                         ProductVariantUpdateSerializer,
+                        VariantGeneratorSerializer,
                         ProductVariantGetComponentSerializer,
                         ProductOptionSerializer,
                         OptionGetSerializer,
@@ -69,6 +71,7 @@ class ProductViewSet(viewsets.GenericViewSet,
             return ProductSerializer
         elif self.action == 'option_setup':
             return ProductOptionSetupSerializer
+        
         elif self.action == 'add_variant':
             return ProductVariantSerializer
         elif self.action=='get_options':
@@ -83,7 +86,7 @@ class ProductViewSet(viewsets.GenericViewSet,
     def get_permissions(self):
         if(self.action in ["create"]):
             return [IsSupplier()]
-        elif(self.action in["add_variant","update","partial_update","destroy","add_option"]):
+        elif(self.action in["add_variant","update","partial_update","destroy","add_option","generate_varaint"]):
             return[perms.IsProductOwner()]
         return [AllowAny()]
     
@@ -160,7 +163,42 @@ class ProductViewSet(viewsets.GenericViewSet,
         serializer.save()
         return Response({"message": "Option added successfully!"}, status=status.HTTP_201_CREATED)
     
+    @action(detail=True, methods=['post'], url_path="generate-variant")
+    def generate_variant(self, request, pk=None):
+        serializer = VariantGeneratorSerializer(data={"product_id": pk})
+        serializer.is_valid(raise_exception=True)
+        variants = serializer.save()
+        return Response(ProductVariantSerializer(variants, many=True).data)
+    
 
+    @action(detail=True, methods=['post'], url_path='bulk-add-variant')
+    def bulk_add_variant(self, request, pk=None):
+        """
+        
+        """
+        try:
+            product = self.get_object()
+        except Product.DoesNotExist:
+            return Response({"detail": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        variants_data = request.data.get("variants", [])
+        print(product.id)
+        serializer = ProductVariantSerializer(
+            data=variants_data,
+            many=True,
+            context={"product": product}  # 🔑 phải truyền product vào đây
+        )
+        serializer.is_valid(raise_exception=True)
+        variants = serializer.save()
+
+        return Response(
+            {
+                "message": f"{len(variants)} variants added successfully!",
+                "variants": ProductVariantSerializer(variants, many=True).data
+            },
+            status=status.HTTP_201_CREATED
+        )
+    
     @action(detail=True, methods=['post'], url_path='add-variant')
     def add_variant(self,request,pk=None):
         try:
@@ -228,9 +266,11 @@ class ProductVariantViewSet(viewsets.GenericViewSet,
             return ProductVariantGetSerializer
         elif self.action == 'list':
             return ProductVariantGetComponentSerializer
-        return ProductVariantUpdateSerializer
+        elif self.action =='update':
+            return ProductVariantUpdateSerializer
 
     def update(self, request, *args, **kwargs):
+        # request.data đã chứa dữ liệu từ form data
         response = super().update(request, *args, **kwargs)
         return Response({
             "message": "Product variant updated successfully!",
