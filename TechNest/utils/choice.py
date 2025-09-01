@@ -6,6 +6,7 @@ class UserType(models.TextChoices):
     """
     SUPPLIER = "supplier", "Người bán"
     CUSTOMER = "customer", "Người mua"
+    DELIVER_MAN = "delivery man","Người giao hàng" 
 
 class ProductStatus(models.TextChoices):
     """
@@ -30,6 +31,7 @@ class DeliveryStatus(models.TextChoices):
     Các trạng thái của đơn hàng khi vận chuyển
     """
     PENDING = "pending","Chờ giao hàng"
+    CONFIRM = "confirm","Đã xác nhận"
     PROCESSING = "processing","Đang xử lý"
     PACKED = "packed","Đã đóng gói"
     SHIPPED ="shipped","Đang giao hàng"

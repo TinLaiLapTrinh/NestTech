@@ -92,7 +92,8 @@ class OrderDetailSerializer(serializers.ModelSerializer):
     price = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     delivery_route = serializers.PrimaryKeyRelatedField(read_only=True)  
     delivery_charge = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)  
-    product = ProductVariantGetSerializer(read_only=True)
+    product = serializers.PrimaryKeyRelatedField(queryset=ProductVariant.objects.all())
+
     class Meta:
         model = OrderDetail
         fields = [
@@ -100,12 +101,18 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             "delivery_route", "distance",
             "delivery_charge","delivery_status",
         ]
-        read_only_fields = ["product", "quantity", "price"]
+        read_only_fields = ["product", "price"]
+    
+    def to_representation(self, instance):
+        """Override output: trả về nested ProductVariant info"""
+        data = super().to_representation(instance)
+        data["product"] = ProductVariantGetSerializer(instance.product).data
+        return data
 
     def validate(self, data):
         product_variant = data.get("product")
         quantity = data.get("quantity")
-
+        
         if not product_variant:
             raise serializers.ValidationError({"product": "Thiếu sản phẩm"})
         if not quantity or quantity <= 0:
@@ -158,7 +165,7 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            "total", "owner", "province","ward",
+            "total", "owner", "province","ward","district",
             "address", "receiver_phone_number", "latitude",
             "longitude","order_details"
         ]
@@ -176,7 +183,10 @@ class OrderSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
+        
+        
         details_data = validated_data.pop("order_details")
+        
         with transaction.atomic():
             order = Order.objects.create(**validated_data)
             total_price = Decimal("0.00")
@@ -185,8 +195,8 @@ class OrderSerializer(serializers.ModelSerializer):
                 quantity = detail_data["quantity"]
                 method = detail_data.get("delivery_method", DeliveryMethods.NORMAL) 
 
-                origin_region = product_variant.product.province.region
-                destination_region = order.province.region
+                origin_region = product_variant.product.province.administrative_region
+                destination_region = order.province.administrative_region
                 try:
                     route = ShippingRoute.objects.get(
                         origin_region=origin_region,
@@ -196,6 +206,7 @@ class OrderSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError({
                         "delivery": f"Không tìm thấy tuyến vận chuyển từ {origin_region.id} đến {destination_region.id}"
                     })
+                
 
                 rate = route.rates.filter(method=method).first()
                 if not rate:
@@ -210,7 +221,7 @@ class OrderSerializer(serializers.ModelSerializer):
                 product_variant.stock -= quantity
                 product_variant.save()
 
-                # Tạo OrderDetail
+
                 OrderDetail.objects.create(
                     order=order,
                     product=product_variant,

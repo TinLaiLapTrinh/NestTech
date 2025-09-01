@@ -15,6 +15,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
 
   final List<String> supplierStatuses = [
     "pending",
+    "confirm",
     "processing",
     "cancelled",
     "failded_delivery_attempt",

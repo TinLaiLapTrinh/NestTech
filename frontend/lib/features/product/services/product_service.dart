@@ -39,7 +39,6 @@ class ProductService {
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
 
-
       List<ProductModel> products = (data['results'] as List)
           .map((item) => ProductModel.fromJson(item))
           .toList();
@@ -50,24 +49,56 @@ class ProductService {
     }
   }
 
-  static Future<List<dynamic>> getVariants(int id) async{
-     final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.productVariants(id));
-    final response = await http.get(url);
+  static Future<List<Map<String, dynamic>>> generateVariants(int id) async {
+    final headers = await ApiHeaders.getAuthHeaders();
+    final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.addProductVariant(id));
 
+    final res = await http.post(url, headers: headers);
+    print(res.body);
+    if (res.statusCode == 200) {
+      final data = json.decode(res.body); // decode JSON string
+      return List<Map<String, dynamic>>.from(data);
+    } else {
+      throw Exception("Lỗi generate variant: ${res.reasonPhrase}");
+    }
+  }
+
+  static Future<List<ProductVariant>> getVariants(int id) async {
+    final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.productVariants(id));
+    final response = await http.get(url);
+    
     if (response.statusCode == 200) {
       final data = json.decode(response.body) as List;
+      return data.map((e) => ProductVariant.fromJson(e)).toList();
+    } else {
+      throw Exception('Failed to get variants');
+    }
+  }
+
+  static Future<dynamic> updateVariant(int id,int variantId, int stock, int price) async{
+    final header = await ApiHeaders.getAuthHeaders();
+     final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.productVariantUpdate(id, variantId));
+    final response = await http.put(
+      uri,
+      headers: header,
+      body: jsonEncode({"price": price,
+      "stock":stock}),
+    );
+    print(response.body);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
       return data;
     } else {
       throw Exception('Failed to get variants');
     }
   }
 
-  static Future<List<dynamic>> getOption(int id) async{
+  static Future<List<Option>> getOption(int id) async {
     final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.options(id));
     final response = await http.get(url);
     if (response.statusCode == 200) {
       final data = json.decode(response.body) as List;
-      return data;
+      return data.map((e) => Option.fromJson(e)).toList();
     } else {
       throw Exception('Failed to get variants');
     }

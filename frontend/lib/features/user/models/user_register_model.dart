@@ -26,7 +26,7 @@ class UserModel {
     this.avatar,
     this.phoneNumber,
     this.followCount,
-    this.userType
+    this.userType,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -46,8 +46,6 @@ class UserModel {
   }
 }
 
-
-
 class SupplierRegisterRequest {
   // User
   String username;
@@ -61,7 +59,6 @@ class SupplierRegisterRequest {
   String? userType;
   File? avatar;
   int? followCount;
-  
 
   // Product
   String productName;
@@ -70,6 +67,7 @@ class SupplierRegisterRequest {
   String productMinPrice;
   String productMaxPrice;
   String productProvince;
+  String productDistrict;
   String productWard;
   String productAddress;
   List<File> productImages;
@@ -91,6 +89,7 @@ class SupplierRegisterRequest {
     required this.productMinPrice,
     required this.productMaxPrice,
     required this.productProvince,
+    required this.productDistrict,
     required this.productWard,
     required this.productAddress,
     required this.productImages,
@@ -120,15 +119,16 @@ class SupplierRegisterRequest {
     request.fields['product_min_price'] = productMinPrice;
     request.fields['product_max_price'] = productMaxPrice;
     request.fields['product_province'] = productProvince;
+     request.fields['product_district'] = productDistrict;
     request.fields['product_ward'] = productWard;
     request.fields['product_address'] = productAddress;
 
     for (var img in productImages) {
-      request.files.add(await MultipartFile.fromPath("product_upload_images", img.path));
+      request.files.add(
+        await MultipartFile.fromPath("product_upload_images", img.path),
+      );
     }
 
     return request;
   }
 }
-
-

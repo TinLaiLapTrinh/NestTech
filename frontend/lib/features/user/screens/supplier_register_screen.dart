@@ -35,12 +35,13 @@ class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
   final _maxPriceCtrl = TextEditingController();
   final _descriptionCtrl = TextEditingController();
 
-
-
   // Location
   List<Province> _provinces = [];
+  List<District> _districts = [];
   List<Ward> _wards = [];
+
   Province? _selectedProvince;
+  District? _selectedDistrict;
   Ward? _selectedWard;
   CategoryModel? _selectedCategory;
   final _productAddressCtrl = TextEditingController();
@@ -77,10 +78,21 @@ class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
       debugPrint("Error loading provinces: $e");
     }
   }
-  
-  Future<void> _loadWards(String provinceCode) async {
+
+  Future<void> _loadDistricts(String provinceCode) async {
     try {
-      final wards = await LocationService.getWards(provinceCode);
+      final dists = await LocationService.getDistricts(provinceCode);
+      setState(() {
+        _districts = dists;
+      });
+    } catch (e) {
+      debugPrint("Error loading districts: $e");
+    }
+  }
+
+  Future<void> _loadWards(String districtCode) async {
+    try {
+      final wards = await LocationService.getWards(districtCode);
       setState(() {
         _wards = wards;
       });
@@ -88,6 +100,8 @@ class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
       debugPrint("Error loading wards: $e");
     }
   }
+
+  // ===== Location =====
 
   Widget _buildProvinceSelector() {
     return TextFormField(
@@ -102,22 +116,59 @@ class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
       onTap: () {
         showModalBottomSheet(
           context: context,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-          ),
-          builder: (context) {
+          builder: (_) {
             return ListView(
               children: _provinces.map((p) {
                 return ListTile(
                   title: Text(p.fullName),
                   onTap: () async {
-                    Navigator.pop(context); // đóng sheet
+                    Navigator.pop(context);
                     setState(() {
                       _selectedProvince = p;
+                      _selectedDistrict = null;
+                      _selectedWard = null;
+                      _districts = [];
+                      _wards = [];
+                    });
+                    await _loadDistricts(p.code);
+                  },
+                );
+              }).toList(),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildDistrictSelector() {
+    if (_districts.isEmpty) return const SizedBox.shrink();
+
+    return TextFormField(
+      readOnly: true,
+      decoration: const InputDecoration(
+        labelText: "Quận/Huyện",
+        suffixIcon: Icon(Icons.arrow_drop_down),
+      ),
+      controller: TextEditingController(
+        text: _selectedDistrict?.fullName ?? "",
+      ),
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          builder: (_) {
+            return ListView(
+              children: _districts.map((d) {
+                return ListTile(
+                  title: Text(d.fullName),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    setState(() {
+                      _selectedDistrict = d;
                       _selectedWard = null;
                       _wards = [];
                     });
-                    await _loadWards(p.code);
+                    await _loadWards(d.code);
                   },
                 );
               }).toList(),
@@ -141,10 +192,7 @@ class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
       onTap: () {
         showModalBottomSheet(
           context: context,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-          ),
-          builder: (context) {
+          builder: (_) {
             return ListView(
               children: _wards.map((w) {
                 return ListTile(
@@ -164,17 +212,15 @@ class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
     );
   }
 
-  Widget _buildCategorySelector(){
+  Widget _buildCategorySelector() {
     return TextFormField(
       readOnly: true,
       decoration: const InputDecoration(
         labelText: "Danh mục",
         suffixIcon: Icon(Icons.arrow_drop_down),
       ),
-       controller: TextEditingController(
-        text: _selectedCategory?.type ?? "",
-      ),
-    onTap: () {
+      controller: TextEditingController(text: _selectedCategory?.type ?? ""),
+      onTap: () {
         showModalBottomSheet(
           context: context,
           shape: const RoundedRectangleBorder(
@@ -200,8 +246,6 @@ class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
     );
   }
 
-
-
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
@@ -214,33 +258,34 @@ class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
   }
 
   void _submitForm() async {
-  final req = SupplierRegisterRequest(
-    username: _usernameCtrl.text,
-    password: _passwordCtrl.text,
-    firstName: _firstNameCtrl.text,
-    lastName: _lastNameCtrl.text,
-    dob: _dobCtrl.text,
-    email: _emailCtrl.text,
-    address: _addressCtrl.text,
-    phoneNumber: _phoneCtrl.text,
-    productName: _productNameCtrl.text,
-    productDescription :_descriptionCtrl.text,
-    productMinPrice: _minPriceCtrl.text,
-    productMaxPrice: _maxPriceCtrl.text,
-    productCategory: _selectedCategory!.id.toString(),
-    productProvince: _selectedProvince!.code,
-    productWard: _selectedWard!.code,
-    productAddress: _productAddressCtrl.text,
-    productImages: _images,
-  );
+    final req = SupplierRegisterRequest(
+  username: _usernameCtrl.text,
+  password: _passwordCtrl.text,
+  firstName: _firstNameCtrl.text,
+  lastName: _lastNameCtrl.text,
+  dob: _dobCtrl.text,
+  email: _emailCtrl.text,
+  address: _addressCtrl.text,
+  phoneNumber: _phoneCtrl.text,
+  productName: _productNameCtrl.text,
+  productDescription: _descriptionCtrl.text,
+  productMinPrice: _minPriceCtrl.text,
+  productMaxPrice: _maxPriceCtrl.text,
+  productCategory: _selectedCategory!.id.toString(),
+  productProvince: _selectedProvince!.code,
+  productDistrict: _selectedDistrict!.code,
+  productWard: _selectedWard!.code,
+  productAddress: _productAddressCtrl.text,
+  productImages: _images,
+);
 
-  try {
-    final result = await UserService.registerSupplier(req);
-    debugPrint("Đăng ký thành công: $result");
-  } catch (e) {
-    debugPrint("Lỗi đăng ký supplier: $e");
+    try {
+      final result = await UserService.registerSupplier(req);
+      debugPrint("Đăng ký thành công: $result");
+    } catch (e) {
+      debugPrint("Lỗi đăng ký supplier: $e");
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -329,7 +374,7 @@ class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
                     labelText: "Mô tả sản phẩm",
                   ),
                 ),
-                _buildCategorySelector()
+                _buildCategorySelector(),
               ],
             ),
           ),
@@ -342,7 +387,10 @@ class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
               children: [
                 _buildProvinceSelector(),
                 const SizedBox(height: 12),
+                _buildDistrictSelector(),
+                const SizedBox(height: 12),
                 _buildWardSelector(),
+                const SizedBox(height: 12),
                 TextField(
                   controller: _productAddressCtrl,
                   decoration: const InputDecoration(
@@ -352,6 +400,7 @@ class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
               ],
             ),
           ),
+
           // Step 4: Hình ảnh minh họa
           Step(
             title: const Text("Hình ảnh minh họa"),

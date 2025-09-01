@@ -21,26 +21,23 @@ class CheckoutService {
     }
   }
 
-  static Future<dynamic> addToCart(int productId, int quantity) async{
+  static Future<dynamic> addToCart(int productId, int quantity) async {
     final header = await ApiHeaders.getAuthHeaders();
     final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.shoppingCartAddItems);
-    final body = {
-      "product": productId,
-      "quantity" : quantity
-    };
+    final body = {"product": productId, "quantity": quantity};
     final response = await http.post(
-        uri,
-        headers: header,
-        body: jsonEncode(body),
-      );
+      uri,
+      headers: header,
+      body: jsonEncode(body),
+    );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-        return jsonDecode(response.body);
-      } else {
-        throw Exception(
-            "Lỗi khi thêm location: ${response.statusCode} - ${response.body}");
-      }
-
+      return jsonDecode(response.body);
+    } else {
+      throw Exception(
+        "Lỗi khi thêm location: ${response.statusCode} - ${response.body}",
+      );
+    }
   }
 
   static Future<dynamic> updateCartItem(int idItem, int quantity) async {
@@ -77,21 +74,25 @@ class CheckoutService {
     }
   }
 
-  static Future<dynamic> addOrder() async {
-    final headers = await ApiHeaders.getAuthHeaders();
+ static Future<Map<String, dynamic>> addOrder(Map<String, dynamic> payload) async {
+  final headers = await ApiHeaders.getAuthHeaders();
+  final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.addOrder);
 
+  final response = await http.post(
+    uri,
+    headers: {...headers, "Content-Type": "application/json"},
+    body: jsonEncode(payload),
+  );
 
-    final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.getOrder);
-
-    final response = await http.get(uri, headers: headers);
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      return data;
-    } else {
-      throw Exception('Failed to load item: ${response.statusCode}');
-    }
+  if (response.statusCode == 201 || response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  } else {
+    // decode lỗi server nếu có
+    final error = json.decode(response.body);
+    throw Exception('Failed to add order: ${response.statusCode}, ${error.toString()}');
   }
+}
+
 
   static Future<Map<String, dynamic>> orderDetail(int id) async {
     final header = await ApiHeaders.getAuthHeaders();
@@ -101,31 +102,34 @@ class CheckoutService {
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      return data
-          as Map<String, dynamic>; 
+      return data as Map<String, dynamic>;
     } else {
       throw Exception('Failed to load order: ${response.statusCode}');
     }
   }
 
-  static Future<List<dynamic>> orderRequest(Map<String,String>? params ) async {
-  final header = await ApiHeaders.getAuthHeaders();
-  final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.orderRequest).replace(queryParameters: params);
+  static Future<List<dynamic>> orderRequest(Map<String, String>? params) async {
+    final header = await ApiHeaders.getAuthHeaders();
+    final uri = Uri.parse(
+      ApiConfig.baseUrl + ApiConfig.orderRequest,
+    ).replace(queryParameters: params);
 
-  final response = await http.get(uri, headers: header);
+    final response = await http.get(uri, headers: header);
 
-  if (response.statusCode == 200) {
-    final data = json.decode(response.body);
-    return data as List<dynamic>; // ✅ API trả về danh sách
-  } else {
-    throw Exception('Failed to load order: ${response.statusCode}');
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return data as List<dynamic>; // ✅ API trả về danh sách
+    } else {
+      throw Exception('Failed to load order: ${response.statusCode}');
+    }
   }
-}
 
-  static Future<dynamic> orderRequestUpdate(int id , String deliveryStatus) async{
-     final header = await ApiHeaders.getAuthHeaders();
+  static Future<dynamic> orderRequestUpdate(
+    int id,
+    String deliveryStatus,
+  ) async {
+    final header = await ApiHeaders.getAuthHeaders();
     final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.orderRequestUpdate(id));
-
 
     final response = await http.patch(
       uri,
@@ -135,8 +139,7 @@ class CheckoutService {
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      return data
-          as Map<String, dynamic>; 
+      return data as Map<String, dynamic>;
     } else {
       throw Exception('Failed to update request order: ${response.statusCode}');
     }

@@ -40,12 +40,25 @@ class Province(models.Model):
         related_name='provinces'
     )
 
-    region = models.ForeignKey(
-        'AdministrativeRegion',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='provinces'
+    administrative_region = models.ForeignKey(
+        AdministrativeRegion, on_delete=models.SET_NULL, null=True, blank=True, related_name="provinces"
+    )
+
+    def __str__(self):
+        return self.full_name
+    
+class District(models.Model):
+    code = models.CharField(max_length=20, primary_key=True)
+    name = models.CharField(max_length=255)
+    name_en = models.CharField(max_length=255, null=True, blank=True)
+    full_name = models.CharField(max_length=255, null=True, blank=True)
+    full_name_en = models.CharField(max_length=255, null=True, blank=True)
+    code_name = models.CharField(max_length=255, null=True, blank=True)
+    province = models.ForeignKey(
+        Province, on_delete=models.CASCADE, null=True, blank=True, related_name="districts"
+    )
+    administrative_unit = models.ForeignKey(
+        AdministrativeUnit, on_delete=models.SET_NULL, null=True, blank=True, related_name="districts"
     )
 
     def __str__(self):
@@ -59,12 +72,12 @@ class Ward(models.Model):
     full_name = models.CharField(max_length=255, null=True, blank=True)
     full_name_en = models.CharField(max_length=255, null=True, blank=True)
     code_name = models.CharField(max_length=255, null=True, blank=True)
-    province = models.ForeignKey(
-        Province,
+    district = models.ForeignKey(
+        District,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='wards'
+        related_name='wards'  # ward sẽ thuộc về district
     )
     administrative_unit = models.ForeignKey(
         AdministrativeUnit,
@@ -100,8 +113,9 @@ class ShippingRate(models.Model):
 
 class UserLocation(models.Model):
     user = models.ForeignKey('accounts.User', related_name='user_locations', on_delete=models.CASCADE)
-    address = models.CharField(max_length=30,null=False)
+    address = models.CharField(max_length=100,null=False)
     province=models.ForeignKey('Province', related_name='user_location',on_delete=models.CASCADE)
+    district=models.ForeignKey('District', related_name='user_location',on_delete=models.CASCADE)
     ward = models.ForeignKey('Ward', related_name='user_location', on_delete=models.CASCADE)
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)    

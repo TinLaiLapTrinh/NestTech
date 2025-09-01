@@ -1,3 +1,5 @@
+import 'package:frontend/features/location/models/location_model.dart';
+
 class ProductDetailModel {
   final int id;
   final String name;
@@ -59,10 +61,7 @@ class Owner {
   Owner({required this.id, required this.name});
 
   factory Owner.fromJson(Map<String, dynamic> json) {
-    return Owner(
-      id: json['id'],
-      name: json['name'],
-    );
+    return Owner(id: json['id'], name: json['name']);
   }
 }
 
@@ -89,10 +88,7 @@ class Location {
   Location({this.province, this.ward});
 
   factory Location.fromJson(Map<String, dynamic> json) {
-    return Location(
-      province: json['province'],
-      ward: json['ward'],
-    );
+    return Location(province: json['province'], ward: json['ward']);
   }
 }
 
@@ -105,19 +101,15 @@ class ProductImage {
   ProductImage({required this.id, required this.alt, required this.image});
 
   factory ProductImage.fromJson(Map<String, dynamic> json) {
-    return ProductImage(
-      id: json['id'],
-      alt: json['alt'],
-      image: json['image'],
-    );
+    return ProductImage(id: json['id'], alt: json['alt'], image: json['image']);
   }
 }
 
 // Variant
 class ProductVariant {
   final int id;
-  final double price;
-  final int stock;
+  double price; // bỏ final
+  int stock; 
   final VariantProduct? product;
   final List<OptionValue> optionValues;
 
@@ -148,16 +140,32 @@ class VariantProduct {
   final int id;
   final String name;
   final String image;
+  final Province? province;
 
-  VariantProduct({required this.id, required this.name, required this.image});
+  VariantProduct({
+    required this.id,
+    required this.name,
+    required this.image,
+    this.province,
+  });
 
   factory VariantProduct.fromJson(Map<String, dynamic> json) {
     return VariantProduct(
       id: json['id'],
       name: json['name'],
       image: json['image'],
+      province: json['province'] != null
+          ? Province.fromJson(json['province'])
+          : null,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        "id": id,
+        "name": name,
+        "image": image,
+        "province": province?.toJson(),
+      };
 }
 
 // Option & OptionValue
@@ -166,11 +174,7 @@ class Option {
   final String type;
   final List<OptionValue> optionValues;
 
-  Option({
-    required this.id,
-    required this.type,
-    required this.optionValues,
-  });
+  Option({required this.id, required this.type, required this.optionValues});
 
   factory Option.fromJson(Map<String, dynamic> json) {
     return Option(
@@ -188,11 +192,7 @@ class OptionValue {
   final String value;
   final OptionType option;
 
-  OptionValue({
-    required this.id,
-    required this.value,
-    required this.option,
-  });
+  OptionValue({required this.id, required this.value, required this.option});
 
   factory OptionValue.fromJson(Map<String, dynamic> json) {
     return OptionValue(
