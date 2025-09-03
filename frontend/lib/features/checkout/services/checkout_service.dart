@@ -111,7 +111,7 @@ class CheckoutService {
   static Future<List<dynamic>> orderRequest(Map<String, String>? params) async {
     final header = await ApiHeaders.getAuthHeaders();
     final uri = Uri.parse(
-      ApiConfig.baseUrl + ApiConfig.orderRequest,
+      ApiConfig.baseUrl + ApiConfig.orderDetail,
     ).replace(queryParameters: params);
 
     final response = await http.get(uri, headers: header);
@@ -129,7 +129,7 @@ class CheckoutService {
     String deliveryStatus,
   ) async {
     final header = await ApiHeaders.getAuthHeaders();
-    final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.orderRequestUpdate(id));
+    final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.orderDetailUpdate(id));
 
     final response = await http.patch(
       uri,
@@ -141,7 +141,26 @@ class CheckoutService {
       final data = json.decode(response.body);
       return data as Map<String, dynamic>;
     } else {
+      
+      throw Exception('Failed to update detail order: ${response.statusCode}');
+    }
+  }
+
+  static Future<dynamic> orderUpdateStatus(int id,String Status) async{
+    final header = await ApiHeaders.getAuthHeaders();
+    final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.orderDetailUpdate(id));
+
+    final response = await http.patch(
+      uri,headers: header,
+      body: jsonEncode({"delivery_status": Status}),
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return data as Map<String, dynamic>;
+    } else {
       throw Exception('Failed to update request order: ${response.statusCode}');
     }
+
   }
 }

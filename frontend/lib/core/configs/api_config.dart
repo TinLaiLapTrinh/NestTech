@@ -40,8 +40,8 @@ class ApiConfig {
   static String getOrder = "/order/";
   static String detailOrder(int id) => "/order/$id/";
   static String deleteOrderDetailItem(int id, int idItem) => "/order/$id/delete-order-detail/$idItem/";
-  static String orderRequest = "/order-request/";
-  static String orderRequestUpdate(int id) =>"/order-request/$id/";
+  static String orderDetail = "/order-detail/";
+  static String orderDetailUpdate(int id) =>"/order-detail/$id/";
 
   // cart
   static String shoppingCart = "/shoppingcart/";

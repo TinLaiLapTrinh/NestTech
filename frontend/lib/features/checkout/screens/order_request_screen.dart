@@ -13,14 +13,21 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
   bool _isLoading = true;
   String? _selectedStatus;
 
-  final List<String> supplierStatuses = [
+  final List<String> filterStatuses = [
     "pending",
     "confirm",
     "processing",
     "cancelled",
-    "failded_delivery_attempt",
+    "shipped",
     "returned_to_sender",
     "refunded",
+  ];
+
+  final List<String> allowedUpdateStatuses = [
+    "confirm",
+    "processing",
+    "cancelled",
+    "shipped",
   ];
 
   @override
@@ -49,6 +56,17 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
     }
   }
 
+  Future<dynamic> _updateStatusDelivery(int id, String status) async {
+    try {
+      print(status);
+      final res = await CheckoutService.orderRequestUpdate(id, status);
+      print(res);
+    } catch (e) {
+      setState(() => _isLoading = false);
+      debugPrint("Lỗi load orders request: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -60,7 +78,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.all(8),
             child: Row(
-              children: supplierStatuses.map((status) {
+              children: filterStatuses.map((status) {
                 final isSelected = _selectedStatus == status;
                 return Padding(
                   padding: const EdgeInsets.only(right: 8.0),
@@ -79,7 +97,6 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
             ),
           ),
 
-          // Danh sách đơn hàng
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -130,7 +147,30 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
                               Text("Số lượng: ${order['quantity']}"),
                               Text("Giá: ${order['price']}"),
                               Text("Phí ship: ${order['delivery_charge']}"),
-                              Text("Trạng thái: ${order['delivery_status']}"),
+                              Text(
+                                "Trạng thái hiện tại: ${order['delivery_status']}",
+                              ),
+                              const SizedBox(height: 4),
+
+                              // Dropdown cập nhật trạng thái
+                              DropdownButton<String>(
+                                value: null,
+                                hint: const Text("Cập nhật trạng thái"),
+                                items: allowedUpdateStatuses.map((status) {
+                                  return DropdownMenuItem(
+                                    value: status,
+                                    child: Text(status),
+                                  );
+                                }).toList(),
+                                onChanged: (newStatus) {
+                                  if (newStatus != null) {
+                                    _updateStatusDelivery(
+                                      order['id'],
+                                      newStatus,
+                                    );
+                                  }
+                                },
+                              ),
                             ],
                           ),
                         ),

@@ -4,12 +4,13 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated,AllowAny
-from accounts.perms  import IsCustomer
-from checkout.perms import IsShoppingCartOwner, IsOrderOwner
+from accounts.perms  import IsCustomer, IsSupplier
+from utils.choice import UserType
+from checkout.perms import IsShoppingCartOwner, IsOrderOwner, IsDeliveryPerson, IsOrderRequest
 from .models import ShoppingCart, ShoppingCartItem, Order, OrderDetail
 from .serializers import (ShoppingCartItemSerializer, ShoppingCartListItemSerializer,
                            ShoppingCartSerializer,OrderSerializer,
-                           OrderDetailSerializer,OrderListSerializer)
+                           OrderDetailSerializer,OrderListSerializer, OrderRequestSerializer)
 from utils.choice import DeliveryStatus
 
 from .paginators import ShoppingCartItemPaginator
@@ -106,6 +107,59 @@ class ShoppingCartViewSet(viewsets.GenericViewSet,
         item.delete()
         return Response({'message': 'Xóa sản phẩm thành công'}, status=status.HTTP_204_NO_CONTENT)
     
+class OrderDetailViewSet(viewsets.GenericViewSet,mixins.RetrieveModelMixin, mixins.ListModelMixin, mixins.UpdateModelMixin):
+
+
+    def get_permissions(self):
+        if self.action in ["update", "partial_update"]:
+            return [IsOrderRequest()]  # Chỉ cần permission này thôi
+        return [IsSupplier()]
+    
+    def get_serializer_class(self):
+        if self.action in ['update','partial_update']:
+            return OrderDetailSerializer     
+        return OrderRequestSerializer
+    
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return OrderDetail.objects.none()
+
+        user = self.request.user
+
+        if user.user_type == UserType.SUPPLIER:
+            
+            return OrderDetail.objects.filter(product__product__owner=user)
+
+        if user.user_type == UserType.DELIVER_PERSON:
+            # Lấy các order detail mà shipper này đang được gán
+            return OrderDetail.objects.filter(delivery_person=user)
+
+        # Các user loại khác thì không thấy gì
+        return OrderDetail.objects.none()
+
+    def list(self, request):
+        search = request.query_params.get("search")
+        delivery_status = request.query_params.get("delivery_status")
+        queryset = self.get_queryset().select_related('product', 'order')
+        if delivery_status:
+            queryset = queryset.filter(
+                delivery_status = delivery_status
+            )
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    def update(self, request, *args, **kwargs):
+        print("VIEWSET UPDATE:", request.data)
+        response = super().update(request, *args, **kwargs)
+        print("VIEWSET RESPONSE:", response.data)
+        return response
+
+
+
+    
+
+    
 class OrderViewSet(viewsets.GenericViewSet,
                    mixins.ListModelMixin, 
                    mixins.CreateModelMixin,
@@ -113,6 +167,8 @@ class OrderViewSet(viewsets.GenericViewSet,
     serializer_class = OrderSerializer
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Order.objects.none()
         user = self.request.user
         
         return Order.objects.filter(owner=user)
@@ -151,8 +207,6 @@ class OrderViewSet(viewsets.GenericViewSet,
         )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
-
-
 
     @action(detail=True, methods=['patch'], url_path='cancel-order-detail/(?P<order_detail_id>[^/.]+)')
     def cancel_detail_order(self, request, pk=None, order_detail_id=None):

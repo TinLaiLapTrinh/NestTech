@@ -59,7 +59,7 @@ class OrderDetail(BaseModel):
     price = models.DecimalField(max_digits=12, decimal_places=2)
     distance = models.FloatField(null=False)
     delivery_charge = models.DecimalField(max_digits=12, decimal_places=2)
-    delivery_persion = models.ForeignKey('accounts.User', related_name='order_delivery', null=True,blank=True ,on_delete=models.SET_NULL)
+    delivery_person = models.ForeignKey('accounts.User', related_name='order_delivery', null=True,blank=True ,on_delete=models.SET_NULL,limit_choices_to={'user_type':UserType.DELIVER_PERSON})
     delivery_status = models.TextField(choices=DeliveryStatus, default=DeliveryStatus.PENDING)  
     delivery_method = models.CharField(max_length=10, choices=DeliveryMethods, default=DeliveryMethods.NORMAL)
     delivery_route = models.ForeignKey('locations.ShippingRoute', related_name='order_detail',on_delete=models.CASCADE)
