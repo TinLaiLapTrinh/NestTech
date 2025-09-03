@@ -590,13 +590,3 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "ward": obj.ward.name if obj.ward else None
         }
 
-class OrderRequestSerializer(serializers.ModelSerializer):
-    product_variant = ProductVariantGetSerializer(source='product', read_only=True)
-
-    class Meta:
-        model = OrderDetail   
-        fields = [
-            "id", "quantity", "price", "delivery_charge",
-            "delivery_status", "delivery_method",
-            "product_variant", "delivery_route",
-        ]

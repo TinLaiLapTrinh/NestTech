@@ -32,7 +32,7 @@ class IsDeliveryMan(permissions.IsAuthenticated):
 
     def has_permission(self, request, view):
         is_authenticated = super().has_permission(request, view)
-        return is_authenticated and request.user.user_type == UserType.DELIVER_MAN 
+        return is_authenticated and request.user.user_type == UserType.DELIVER_PERSON
     
 class IsFollower(permissions.IsAuthenticated):
     """

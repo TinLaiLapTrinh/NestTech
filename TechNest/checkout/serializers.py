@@ -8,6 +8,7 @@ from locations.models import ShippingRoute, ShippingRate
 from products.serializers import ProductVariantGetSerializer
 from django.db import transaction
 import json
+from accounts.models import User
 from locations.models import Province,Ward
 from rest_framework.response import Response
 from decimal import Decimal
@@ -98,10 +99,10 @@ class OrderDetailSerializer(serializers.ModelSerializer):
         model = OrderDetail
         fields = [
             "product", "quantity", "price",
-            "delivery_route", "distance",
-            "delivery_charge","delivery_status",
+            "delivery_route",
+            "delivery_charge","delivery_status","delivery_person",
         ]
-        read_only_fields = ["product", "price"]
+        read_only_fields = ["product", "price","delivery_person"]
     
     def to_representation(self, instance):
         """Override output: trả về nested ProductVariant info"""
@@ -110,8 +111,8 @@ class OrderDetailSerializer(serializers.ModelSerializer):
         return data
 
     def validate(self, data):
-        product_variant = data.get("product")
-        quantity = data.get("quantity")
+        product_variant = data.get("product") or getattr(self.instance, 'product', None)
+        quantity = data.get("quantity") or getattr(self.instance, 'quantity', None)
         
         if not product_variant:
             raise serializers.ValidationError({"product": "Thiếu sản phẩm"})
@@ -139,13 +140,35 @@ class OrderDetailSerializer(serializers.ModelSerializer):
         validated_data["price"] = product_variant.price  
 
         return super().create(validated_data)
+    
     def update(self, instance, validated_data):
+
+        print("SERIALIZER UPDATE CALLED")
+        print("validated_data:", validated_data)
         old_status = instance.delivery_status
         new_status = validated_data.get("delivery_status", old_status)
+        print("DEBUG STATUS:", old_status, "->", new_status)
+        print(f"tỉnh hiện tại: {instance.order.province.code}")
+        print("DEBUG: update called", old_status, "->", new_status)
+        delivery_person = User.objects.filter(
+                province=instance.order.province,
+                user_type=UserType.DELIVER_PERSON
+            ).first()
+            
+        print(f"Giao cho shipper: {delivery_person}")
+        if old_status == DeliveryStatus.PROCESSING and new_status == DeliveryStatus.SHIPPED:
+            delivery_person = User.objects.filter(
+                province=instance.order.province,
+                user_type=UserType.DELIVER_PERSON
+            ).first()
+            
+            print(f"Giao cho shipper: {delivery_person}")
+            if delivery_person:
+                instance.delivery_person = delivery_person
 
-
+        # Khi chuyển sang DELIVERED thì tăng số lượng đã bán
         if old_status != DeliveryStatus.DELIVERED and new_status == DeliveryStatus.DELIVERED:
-            product = instance.product.product 
+            product = instance.product.product
             product.sold_quantity = (product.sold_quantity or 0) + instance.quantity
             product.save(update_fields=["sold_quantity"])
 
@@ -241,4 +264,15 @@ class OrderSerializer(serializers.ModelSerializer):
 
         return order
     
+class OrderRequestSerializer(serializers.ModelSerializer):
+    product_variant = ProductVariantGetSerializer(source='product', read_only=True)
+
+    class Meta:
+        model = OrderDetail   
+        fields = [
+            "id", "quantity", "price", "delivery_charge",
+            "delivery_status", "delivery_method",
+            "product_variant", "delivery_route",
+        ]
+
 

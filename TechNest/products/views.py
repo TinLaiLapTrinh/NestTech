@@ -9,7 +9,6 @@ from .models import (Product,ProductImage,ProductStatus,
                     ProductVariant,Option,OptionValue,
                     VariantOptionValue)
 from checkout.models import OrderDetail
-from checkout.serializers import OrderDetailSerializer
 from .serializers import (CategorySerializer,
                         ProductSerializer,
                         ProductListSerializer,
@@ -26,7 +25,7 @@ from .serializers import (CategorySerializer,
                         ProductVariantSerializer,
                         ProductListSerializer,
                         ProductDetailSerializer,
-                        OrderRequestSerializer)
+                        )
 from .models import Category
 from rest_framework.response import Response
 from django.db.models import Q
@@ -283,37 +282,4 @@ class ProductVariantViewSet(viewsets.GenericViewSet,
             "message": "Product variant deleted successfully!",
             "data": response.data
         }, status=status.HTTP_200_OK)
-    
-class OrderRequestViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.UpdateModelMixin):
-
-
-    def get_permissions(self):
-        if self.action =='update':
-            return [perms.IsOrderRequest()]
-        return [IsSupplier()]
-    
-    def get_serializer_class(self):
-        if self.action =='update':
-            return OrderDetailSerializer     
-        return OrderRequestSerializer
-    
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return OrderDetail.objects.none()
-        return OrderDetail.objects.filter(product__product__owner = self.request.user)
-    
-    def list(self, request):
-        search = request.query_params.get("search")
-        delivery_status = request.query_params.get("delivery_status")
-        queryset = self.get_queryset().select_related('product', 'order')
-        if delivery_status:
-            queryset = queryset.filter(
-                delivery_status = delivery_status
-            )
-
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
-
-
-
     
