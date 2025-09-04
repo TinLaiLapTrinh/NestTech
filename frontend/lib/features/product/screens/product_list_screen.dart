@@ -15,37 +15,91 @@ class ProductListScreen extends StatefulWidget {
 
 class _ProductListScreenState extends State<ProductListScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
-  late Future<List<ProductModel>> _productsFuture;
+  final ScrollController _scrollController = ScrollController();
   final NumberFormat _formatter = NumberFormat("#,###", "vi_VN");
+
   Map<String, String> _filters = {};
+  List<ProductModel> _products = [];
+  int _currentPage = 1;
+  bool _isLoading = false;
+  bool _hasMore = true;
+  bool _scrollThrottled = false;
   List<CategoryModel> _categories = [];
 
   @override
   void initState() {
     super.initState();
-    _fetchProducts();
     _loadCategories();
+    _fetchProducts(initial: true);
+
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+              _scrollController.position.maxScrollExtent - 200 &&
+          !_isLoading &&
+          _hasMore &&
+          !_scrollThrottled) {
+        _scrollThrottled = true;
+        _fetchProducts().then((_) => _scrollThrottled = false);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadCategories() async {
     try {
       final cats = await ProductService.getCategory();
+      if (!mounted) return;
       setState(() => _categories = cats);
     } catch (e) {
       debugPrint("Error loading categories: $e");
     }
   }
 
-  void _fetchProducts() {
-    setState(() {
-      _productsFuture = ProductService.getProducts(params: _filters);
-    });
+  Future<void> _fetchProducts({bool initial = false}) async {
+    if (_isLoading || !_hasMore) return;
+
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+
+    try {
+      if (initial) {
+        _currentPage = 1;
+        _products.clear();
+        _hasMore = true;
+      }
+
+      final params = {
+        ..._filters,
+        "page": _currentPage.toString(),
+      };
+
+      final newProducts = await ProductService.getProducts(params: params);
+      if (!mounted) return;
+
+      setState(() {
+        if (newProducts.isEmpty) {
+          _hasMore = false;
+        } else {
+          _products.addAll(newProducts);
+          _currentPage++;
+        }
+      });
+    } catch (e) {
+      debugPrint("Error loading products: $e");
+    } finally {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+    }
   }
 
   void _onFilterChanged(Map<String, String> newFilters) {
     _filters = newFilters;
-    _fetchProducts();
+    _fetchProducts(initial: true);
   }
 
   @override
@@ -57,9 +111,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.filter_alt_outlined),
-            onPressed: () {
-              _scaffoldKey.currentState?.openEndDrawer();
-            },
+            onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
           ),
         ],
       ),
@@ -85,9 +137,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     return ListTile(
                       title: Text(cat.type),
                       onTap: () {
-                        // Gọi filter
                         _onFilterChanged({"category": cat.id.toString()});
-                        Navigator.pop(context); // đóng drawer
+                        Navigator.pop(context);
                       },
                     );
                   },
@@ -101,124 +152,120 @@ class _ProductListScreenState extends State<ProductListScreen> {
         children: [
           SearchAndFilterHeader(onFilterChanged: _onFilterChanged),
           Expanded(
-            child: FutureBuilder<List<ProductModel>>(
-              future: _productsFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text("Error: ${snapshot.error}"));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text("Không có sản phẩm"));
-                }
-
-                final products = snapshot.data!;
-                return MasonryGridView.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  itemCount: products.length,
-                  itemBuilder: (context, index) {
-                    final product = products[index];
-                    return InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                ProductDetailScreen(productId: product.id),
-                          ),
-                        );
-                      },
-                      child: Card(
-                        elevation: 3,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            AspectRatio(
-                              aspectRatio: 1,
-                              child: product.images.isNotEmpty
-                                  ? Image.network(
-                                      product.images[0].image,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : Container(
-                                      color: Colors.grey[200],
-                                      child: const Icon(
-                                        Icons.image_not_supported,
-                                        size: 40,
-                                      ),
-                                    ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    product.name,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    product.minPrice == product.maxPrice
-                                        ? "${_formatter.format(product.minPrice)} đ"
-                                        : "${_formatter.format(product.minPrice)} - ${_formatter.format(product.maxPrice)} đ",
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.redAccent,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    product.soldQuantity == 0
-                                        ? "Chưa có đơn hàng"
-                                        : "Đã bán ${product.soldQuantity}",
-                                    style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    "${product.ward}, ${product.province}",
-                                    style: TextStyle(
-                                      color: Colors.grey.shade500,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
+            child: RefreshIndicator(
+              onRefresh: () => _fetchProducts(initial: true),
+              child: _products.isEmpty && !_isLoading
+                  ? const Center(child: Text("Không có sản phẩm"))
+                  : MasonryGridView.count(
+                      controller: _scrollController,
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      itemCount: _products.length + 1,
+                      itemBuilder: (context, index) {
+                        if (index >= _products.length) {
+                          if (_isLoading) {
+                            return const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Center(
+                                  child: CircularProgressIndicator()),
+                            );
+                          } else if (!_hasMore) {
+                            return const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Center(
+                                child: Text(
+                                  "🎉 Đã tải hết sản phẩm",
+                                  style: TextStyle(color: Colors.grey),
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
+                            );
+                          } else {
+                            return const SizedBox();
+                          }
+                        }
+                        return _buildProductCard(_products[index]);
+                      },
+                    ),
             ),
           ),
         ],
       ),
     );
   }
+
+  Widget _buildProductCard(ProductModel product) {
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) =>
+                  ProductDetailScreen(productId: product.id)),
+        );
+      },
+      child: Card(
+        elevation: 3,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AspectRatio(
+              aspectRatio: 1,
+              child: product.images.isNotEmpty
+                  ? Image.network(product.images[0].image, fit: BoxFit.cover)
+                  : Container(
+                      color: Colors.grey[200],
+                      child: const Icon(Icons.image_not_supported, size: 40),
+                    ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.name,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 14),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    product.minPrice == product.maxPrice
+                        ? "${_formatter.format(product.minPrice)} đ"
+                        : "${_formatter.format(product.minPrice)} - ${_formatter.format(product.maxPrice)} đ",
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.redAccent),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    product.soldQuantity == 0
+                        ? "Chưa có đơn hàng"
+                        : "Đã bán ${product.soldQuantity}",
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "${product.ward}, ${product.province}",
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-/// Header tìm kiếm
 class SearchAndFilterHeader extends StatefulWidget {
   final void Function(Map<String, String>) onFilterChanged;
-
   const SearchAndFilterHeader({super.key, required this.onFilterChanged});
 
   @override

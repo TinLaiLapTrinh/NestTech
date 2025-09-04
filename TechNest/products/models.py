@@ -16,7 +16,7 @@ class Category(BaseModel):
 
 
 class Product(BaseModel):
-    name = models.CharField(max_length=100,null=False)
+    name = models.CharField(max_length=255,null=False)
     status = models.CharField(max_length=20, choices=ProductStatus,default=ProductStatus.DEPENDING)
     max_price = models.FloatField(null=True)
     min_price = models.FloatField(null=True)

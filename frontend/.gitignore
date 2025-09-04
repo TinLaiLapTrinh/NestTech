@@ -33,6 +33,7 @@ build/
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/app/google-services
 
 # iOS
 ios/Pods/

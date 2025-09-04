@@ -19,9 +19,22 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
     "processing",
     "cancelled",
     "shipped",
+    "delivered",
     "returned_to_sender",
     "refunded",
+
   ];
+
+  Map<String, List<String>> allowedTransitions = {
+    "pending": ["confirm", "cancelled"],
+    "confirm": ["processing", "cancelled"],
+    "processing": ["shipped", "cancelled"],
+    "shipped": ["delivered", "returned_to_sender"],
+    "delivered": [],
+    "returned_to_sender": [],
+    "cancelled": [],
+    "refunded": [],
+  };
 
   final List<String> allowedUpdateStatuses = [
     "confirm",
@@ -58,7 +71,6 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
 
   Future<dynamic> _updateStatusDelivery(int id, String status) async {
     try {
-      print(status);
       final res = await CheckoutService.orderRequestUpdate(id, status);
       print(res);
     } catch (e) {
@@ -106,71 +118,208 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
                     itemCount: _myOrders.length,
                     itemBuilder: (context, index) {
                       final order = _myOrders[index];
-                      final product = order['product_variant']['product'];
+                      final productVariant = order['product'] ?? {};
+                      final product = productVariant['product'] ?? {};
                       final optionValues =
-                          order['product_variant']['option_values']
-                              as List<dynamic>;
+                          productVariant['option_values'] is List
+                          ? productVariant['option_values']
+                          : [];
+
+                      final routeInfo = order['route_info'] ?? {};
+                      final from = routeInfo['from'] ?? {};
+                      final to = routeInfo['to'] ?? {};
+
+                      final currentStatus =
+                          order['delivery_status'] ?? 'pending';
+                      final nextStatuses =
+                          allowedTransitions[currentStatus] ?? [];
+
+
+                      Color statusColor(String status) {
+                        switch (status.toLowerCase()) {
+                          case 'pending':
+                            return Colors.orange;
+                          case 'confirm':
+                            return Colors.blue;
+                          case 'processing':
+                            return Colors.teal;
+                          case 'shipped':
+                            return Colors.green;
+                          case 'cancelled':
+                            return Colors.red;
+                          case 'returned_to_sender':
+                            return Colors.purple;
+                          case 'refunded':
+                            return Colors.grey;
+                          default:
+                            return Colors.black;
+                        }
+                      }
 
                       return Card(
-                        margin: const EdgeInsets.all(8),
-                        child: ListTile(
-                          leading: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              product['image'],
-                              width: 60,
-                              height: 60,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          title: Text(
-                            product['name'],
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          subtitle: Column(
+                        margin: const EdgeInsets.symmetric(
+                          vertical: 6,
+                          horizontal: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 3,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // Hình ảnh + tên sản phẩm
+                              Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      product['image'] ?? '',
+                                      width: 60,
+                                      height: 60,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) =>
+                                          const Icon(Icons.image),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      product['name'] ?? 'Không có tên',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  // Trạng thái với màu
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 4,
+                                      horizontal: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: statusColor(
+                                        order['delivery_status'] ?? 'pending',
+                                      ).withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      order['delivery_status']?.toUpperCase() ??
+                                          '',
+                                      style: TextStyle(
+                                        color: statusColor(
+                                          order['delivery_status'] ?? 'pending',
+                                        ),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+
+                              // Option values
                               Wrap(
-                                children: optionValues.map((opt) {
+                                children: optionValues.map<Widget>((opt) {
                                   return Padding(
-                                    padding: const EdgeInsets.only(right: 6.0),
+                                    padding: const EdgeInsets.only(
+                                      right: 6.0,
+                                      bottom: 4,
+                                    ),
                                     child: Chip(
                                       label: Text(
-                                        "${opt['option']['type']}: ${opt['value']}",
+                                        "${opt['option']?['type'] ?? ''}: ${opt['value'] ?? ''}",
+                                        style: const TextStyle(fontSize: 12),
                                       ),
                                       visualDensity: VisualDensity.compact,
+                                      backgroundColor: Colors.grey[200],
                                     ),
                                   );
                                 }).toList(),
                               ),
-                              Text("Số lượng: ${order['quantity']}"),
-                              Text("Giá: ${order['price']}"),
-                              Text("Phí ship: ${order['delivery_charge']}"),
-                              Text(
-                                "Trạng thái hiện tại: ${order['delivery_status']}",
-                              ),
-                              const SizedBox(height: 4),
 
-                              // Dropdown cập nhật trạng thái
-                              DropdownButton<String>(
-                                value: null,
-                                hint: const Text("Cập nhật trạng thái"),
-                                items: allowedUpdateStatuses.map((status) {
-                                  return DropdownMenuItem(
-                                    value: status,
-                                    child: Text(status),
-                                  );
-                                }).toList(),
-                                onChanged: (newStatus) {
-                                  if (newStatus != null) {
-                                    _updateStatusDelivery(
-                                      order['id'],
-                                      newStatus,
-                                    );
-                                  }
-                                },
+                              const SizedBox(height: 4),
+                              Text("Số lượng: ${order['quantity'] ?? 0}"),
+                              Text("Giá: ${order['price'] ?? 0}"),
+                              Text(
+                                "Phí ship: ${order['delivery_charge'] ?? 0}",
                               ),
+                              Text(
+                                "Phương thức: ${order['delivery_method'] ?? ''}",
+                              ),
+                              Text(
+                                "Người giao: ${order['delivery_person'] ?? 'Chưa có'}",
+                              ),
+                              const SizedBox(height: 8),
+
+                              // Thông tin tuyến đường
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Tuyến đường:",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      "Từ: ${from['address'] ?? ''}, ${from['ward'] ?? ''}, ${from['district'] ?? ''}, ${from['province'] ?? ''}",
+                                    ),
+                                    Text(
+                                      "Đến: ${to['address'] ?? ''}, ${to['ward'] ?? ''}, ${to['district'] ?? ''}, ${to['province'] ?? ''}",
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              const SizedBox(height: 8),
+                              // Dropdown cập nhật trạng thái
+                              if (nextStatuses.isNotEmpty)
+                                Wrap(
+                                  spacing: 6,
+                                  children: nextStatuses.map((status) {
+                                    return ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: statusColor(status),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 6,
+                                        ),
+                                      ),
+                                      onPressed: () {
+                                        _updateStatusDelivery(
+                                          order['id'],
+                                          status,
+                                        );
+                                      },
+                                      child: Text(
+                                        status.toUpperCase(),
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    );
+                                  }).toList(),
+                                )
+                              else
+                                Text(
+                                  "Không thể cập nhật trạng thái nữa",
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
                             ],
                           ),
                         ),

@@ -4,16 +4,16 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated,AllowAny
-from accounts.perms  import IsCustomer, IsSupplier
+from accounts.perms  import IsCustomer, IsSupplier, IsDeliveryPerson
 from utils.choice import UserType
-from checkout.perms import IsShoppingCartOwner, IsOrderOwner, IsDeliveryPerson, IsOrderRequest
+from checkout.perms import IsShoppingCartOwner, IsOrderOwner, IsDeliveryPersonOrder, IsOrderRequest
 from .models import ShoppingCart, ShoppingCartItem, Order, OrderDetail
 from .serializers import (ShoppingCartItemSerializer, ShoppingCartListItemSerializer,
                            ShoppingCartSerializer,OrderSerializer,
                            OrderDetailSerializer,OrderListSerializer, OrderRequestSerializer)
 from utils.choice import DeliveryStatus
 
-from .paginators import ShoppingCartItemPaginator
+from .paginators import ShoppingCartItemPaginator, OrderDetailItemPaginator
 
 
 
@@ -108,15 +108,15 @@ class ShoppingCartViewSet(viewsets.GenericViewSet,
         return Response({'message': 'Xóa sản phẩm thành công'}, status=status.HTTP_204_NO_CONTENT)
     
 class OrderDetailViewSet(viewsets.GenericViewSet,mixins.RetrieveModelMixin, mixins.ListModelMixin, mixins.UpdateModelMixin):
-
+    pagination_class = OrderDetailItemPaginator
 
     def get_permissions(self):
         if self.action in ["update", "partial_update"]:
-            return [IsOrderRequest()]  # Chỉ cần permission này thôi
-        return [IsSupplier()]
+            return [(IsOrderRequest | IsDeliveryPerson)()]
+        return [(IsSupplier | IsDeliveryPerson)()]
     
     def get_serializer_class(self):
-        if self.action in ['update','partial_update']:
+        if self.action in ['update','partial_update','list']:
             return OrderDetailSerializer     
         return OrderRequestSerializer
     
@@ -131,7 +131,7 @@ class OrderDetailViewSet(viewsets.GenericViewSet,mixins.RetrieveModelMixin, mixi
             return OrderDetail.objects.filter(product__product__owner=user)
 
         if user.user_type == UserType.DELIVER_PERSON:
-            # Lấy các order detail mà shipper này đang được gán
+            
             return OrderDetail.objects.filter(delivery_person=user)
 
         # Các user loại khác thì không thấy gì
@@ -140,11 +140,16 @@ class OrderDetailViewSet(viewsets.GenericViewSet,mixins.RetrieveModelMixin, mixi
     def list(self, request):
         search = request.query_params.get("search")
         delivery_status = request.query_params.get("delivery_status")
+        
         queryset = self.get_queryset().select_related('product', 'order')
         if delivery_status:
             queryset = queryset.filter(
                 delivery_status = delivery_status
             )
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)

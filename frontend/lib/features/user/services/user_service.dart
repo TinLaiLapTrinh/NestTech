@@ -75,4 +75,21 @@ class UserService {
       throw Exception("Đăng ký supplier thất bại: ${response.body}");
     }
   }
+
+  Future<void> saveFcmToken(String token) async {
+   final header = await ApiHeaders.getAuthHeaders();
+  final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.saveFcmToken);
+  final response = await http.post(
+    url,
+    headers: header,
+    body: jsonEncode({'token': token}),
+  );
+
+  if (response.statusCode == 200) {
+    print("FCM token saved successfully!");
+  } else {
+    print("Failed to save FCM token: ${response.body}");
+  }
+}
+
 }

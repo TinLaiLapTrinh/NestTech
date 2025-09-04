@@ -26,6 +26,7 @@ TechNest/*.egg-info/
 TechNest/.installed.cfg
 TechNest/*.egg
 TechNest/MANIFEST
+TechNest/firebase/notification-600a5-firebase-adminsdk-fbsvc-2f5f26028e
 
 # Installer logs
 TechNest/pip-log.txt

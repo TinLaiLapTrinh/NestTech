@@ -17,6 +17,7 @@ class ApiConfig {
   static String addProductVariant(int id)=>"/products/$id/generate-variant/";
   static String productVariantDetai(int id, int variantId) => "/product/$id/variant/$variantId/";
   static String options(int id)=>"/products/$id/get-options/";
+  static const String saveFcmToken="/save-fcm-token/";
   
   // Location
   static String getProvinces = "/locations/province/";

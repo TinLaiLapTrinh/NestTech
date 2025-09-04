@@ -54,7 +54,6 @@ class ProductService {
     final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.addProductVariant(id));
 
     final res = await http.post(url, headers: headers);
-    print(res.body);
     if (res.statusCode == 200) {
       final data = json.decode(res.body); // decode JSON string
       return List<Map<String, dynamic>>.from(data);
@@ -84,7 +83,7 @@ class ProductService {
       body: jsonEncode({"price": price,
       "stock":stock}),
     );
-    print(response.body);
+    
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       return data;

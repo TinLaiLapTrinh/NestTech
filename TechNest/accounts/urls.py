@@ -8,4 +8,5 @@ router.register("follow",views.FollowViewSet,basename="follow")
 
 urlpatterns = [
     path("", include(router.urls)),
+     path('save-fcm-token/', views.save_fcm_token, name='save_fcm_token'),
 ]

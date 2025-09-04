@@ -115,10 +115,9 @@ class CheckoutService {
     ).replace(queryParameters: params);
 
     final response = await http.get(uri, headers: header);
-
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      return data as List<dynamic>; // ✅ API trả về danh sách
+      return data['results'] as List<dynamic>; 
     } else {
       throw Exception('Failed to load order: ${response.statusCode}');
     }
@@ -136,6 +135,7 @@ class CheckoutService {
       headers: header,
       body: jsonEncode({"delivery_status": deliveryStatus}),
     );
+    
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);

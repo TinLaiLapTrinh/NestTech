@@ -19,7 +19,7 @@ class IsOrderRequest(IsAuthenticated):
         
         return is_authenticated and obj.product.product.owner == request.user
     
-class IsDeliveryPerson(IsAuthenticated):
+class IsDeliveryPersonOrder(IsAuthenticated):
     def has_object_permission(self, request, view, obj):
         is_authenticated = super().has_permission(request,view)
         

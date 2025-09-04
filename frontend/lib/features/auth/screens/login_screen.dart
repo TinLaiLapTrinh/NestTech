@@ -1,6 +1,8 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/features/user/provider/user_provider.dart';
 import 'package:frontend/features/user/screens/supplier_register_screen.dart';
+import 'package:frontend/features/user/services/user_service.dart';
 import 'package:provider/provider.dart';
 
 import '../../../screens/home_screen.dart';
@@ -22,17 +24,12 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
-  
-
   Future<void> _login() async {
-
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     setState(() {
       _isLoading = true;
       _errorMessage = null;
-      
     });
-    
 
     final success = await AuthService.login(
       username: _usernameController.text.trim(),
@@ -44,6 +41,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (success) {
       widget.onLoginSuccess?.call();
+      String? fcmToken = await FirebaseMessaging.instance.getToken();
+      if (fcmToken != null) {
+        await UserService().saveFcmToken(fcmToken);
+        print("FCM token sent after login: $fcmToken");
+      }
 
       Navigator.pushAndRemoveUntil(
         context,
@@ -57,54 +59,55 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
- void _navigateToRegister() {
-  showModalBottomSheet(
-    context: context,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-    ),
-    builder: (context) {
-      return Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              "Chọn loại tài khoản",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const UserRegisterScreen()),
-                );
-              },
-              child: const Text("Đăng ký tài khoản thường"),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const SupplierRegisterScreen()),
-                );
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-              child: const Text("Đăng ký tài khoản nhà cung cấp"),
-            ),
-          ],
-        ),
-      );
-    },
-  );
-}
-
+  void _navigateToRegister() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Chọn loại tài khoản",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const UserRegisterScreen(),
+                    ),
+                  );
+                },
+                child: const Text("Đăng ký tài khoản thường"),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SupplierRegisterScreen(),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                child: const Text("Đăng ký tài khoản nhà cung cấp"),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

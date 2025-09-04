@@ -9,6 +9,10 @@ from django.db.models import Q
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .models import FcmToken
 
 class UserViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = User.objects.filter(is_active=True)
@@ -116,3 +120,19 @@ class FollowViewSet(viewsets.GenericViewSet):
         follows = Follow.objects.filter(follower=request.user)
         serializer = self.get_serializer(follows, many=True)
         return Response(serializer.data)
+    
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def save_fcm_token(request):
+    token = request.data.get("token")
+    if not token:
+        return Response({"error": "Token is required"}, status=400)
+
+
+    FcmToken.objects.update_or_create(
+        user=request.user,
+        token=token,
+        defaults={"user": request.user}
+    )
+
+    return Response({"status": "success"})

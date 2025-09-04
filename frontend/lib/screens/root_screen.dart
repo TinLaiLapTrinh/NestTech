@@ -54,6 +54,8 @@ class _RootScreenState extends State<RootScreen> {
       return const HomeScreen();
     }
 
+    
+
     if (_userType == "supplier") {
       // supplier -> ép login bằng customer
       return const LoginScreen();
