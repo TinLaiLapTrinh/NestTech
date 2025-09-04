@@ -88,3 +88,4 @@ frontend/.vscode/
 
 # Optional: ignore local env
 frontend/.env
+TechNest/firebase/*.json
