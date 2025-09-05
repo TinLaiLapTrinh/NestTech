@@ -25,6 +25,7 @@ class AppFooter extends StatelessWidget {
         BottomNavigationBarItem(icon: Icon(Icons.assignment), label: "Đơn hàng"),
         BottomNavigationBarItem(icon: Icon(Icons.map), label: "Bản đồ"),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: "Tài khoản"),
+        BottomNavigationBarItem(icon: Icon(Icons.logout), label: "Đăng xuất"),
       ];
     } else if (role == "delivery_person") {
       items = const [
@@ -32,6 +33,7 @@ class AppFooter extends StatelessWidget {
         BottomNavigationBarItem(icon: Icon(Icons.assignment), label: "Yêu cầu đơn"),
         BottomNavigationBarItem(icon: Icon(Icons.local_shipping), label: "Đơn giao"),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: "Tài khoản"),
+        BottomNavigationBarItem(icon: Icon(Icons.logout), label: "Đăng xuất"),
       ];
     } else {
       // customer
@@ -41,6 +43,7 @@ class AppFooter extends StatelessWidget {
         BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: "Đơn hàng"),
         BottomNavigationBarItem(icon: Icon(Icons.map), label: "Vị trí"),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: "Tài khoản"),
+        BottomNavigationBarItem(icon: Icon(Icons.logout), label: "Đăng xuất"),
       ];
     }
 

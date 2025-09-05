@@ -30,8 +30,13 @@ def send_push_notification_multiple(tokens, title, body):
     response = messaging.send_multicast(message)
     return response
 
-def send_order_notification(user, title, body):
+
+
+def send_order_notification(user, title, body, exclude_token=None):
     tokens = list(user.fcm_tokens.values_list("token", flat=True))
+    if exclude_token:
+        tokens = [t for t in tokens if t != exclude_token]
+
     if not tokens:
         return
 
@@ -39,10 +44,12 @@ def send_order_notification(user, title, body):
         notification=messaging.Notification(title=title, body=body),
         tokens=tokens,
     )
-    response = messaging.send_multicast(message)
+    response = messaging.send_each_for_multicast(message)
 
-
+    # Xử lý token lỗi
     for i, resp in enumerate(response.responses):
+        if i >= len(tokens):  # đảm bảo i không vượt quá tokens
+            continue
         if not resp.success:
-            bad_token = tokens[i]
-            FcmToken.objects.filter(token=bad_token).delete()
+            FcmToken.objects.filter(token=tokens[i]).delete()
+

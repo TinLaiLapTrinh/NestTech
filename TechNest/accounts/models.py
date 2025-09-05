@@ -31,11 +31,17 @@ class SupplierApproved(User):
         proxy = True
 
 class FcmToken(models.Model):
-    user = models.ForeignKey("User", on_delete=models.CASCADE, related_name="fcm_tokens")
-    token = models.CharField(max_length=255, unique=True)
+    token = models.CharField(max_length=255)
+    users = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="fcm_tokens",
+        blank=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        unique_together = ("token",)  
 class Follow(BaseModel):
     follower = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="following", 
                                  on_delete=models.CASCADE, 

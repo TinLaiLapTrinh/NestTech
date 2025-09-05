@@ -20,6 +20,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   late UserProvider userProvider;
   bool _isLoading = false;
   String? _errorMessage;
@@ -58,6 +59,12 @@ class _LoginScreenState extends State<LoginScreen> {
       });
     }
   }
+
+  Future<String?> getFcmToken() async {
+  String? token = await _firebaseMessaging.getToken();
+  print("FCM Token: $token");
+  return token;
+}
 
   void _navigateToRegister() {
     showModalBottomSheet(

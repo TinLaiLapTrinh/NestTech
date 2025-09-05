@@ -9,13 +9,10 @@ from django.db.models import Q
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-<<<<<<< HEAD
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import FcmToken
-=======
->>>>>>> 362a5ce8c9896e7b0e02934d38d47ce065d37035
 
 class UserViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = User.objects.filter(is_active=True)
@@ -129,13 +126,13 @@ class FollowViewSet(viewsets.GenericViewSet):
 def save_fcm_token(request):
     token = request.data.get("token")
     if not token:
-        return Response({"error": "Token is required"}, status=400)
-
-
-    FcmToken.objects.update_or_create(
-        user=request.user,
-        token=token,
-        defaults={"user": request.user}
-    )
-
-    return Response({"status": "success"})
+        return Response({"error": "No token provided"}, status=400)
+    print(f"{request.data} - {request.user.id}")
+    # Lấy hoặc tạo token
+    fcm_token_obj, created = FcmToken.objects.get_or_create(token=token)
+    
+    # Gắn user hiện tại vào token nếu chưa có
+    if not fcm_token_obj.users.filter(id=request.user.id).exists():
+        fcm_token_obj.users.add(request.user)
+    
+    return Response({"status": "Token saved"})

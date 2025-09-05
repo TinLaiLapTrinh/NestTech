@@ -47,7 +47,7 @@ class UserModel {
 }
 
 class SupplierRegisterRequest {
-  // User
+  
   String username;
   String password;
   String firstName;
@@ -60,7 +60,7 @@ class SupplierRegisterRequest {
   File? avatar;
   int? followCount;
 
-  // Product
+
   String productName;
   String productDescription;
   String productCategory;

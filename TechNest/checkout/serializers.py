@@ -212,9 +212,19 @@ class OrderDetailSerializer(serializers.ModelSerializer):
 
         if old_status != new_status:  # Chỉ gửi khi trạng thái thay đổi
             order_owner = instance.order.owner
+            variant = instance.product  # instance là ProductVariant
+
             title = "Cập nhật đơn hàng"
-            body = f"Đơn hàng #{instance.order.id} đã chuyển sang trạng thái: {new_status}"
+            body = (
+                f"Đơn hàng {variant.product.name} - {variant.sku} của "
+                f"{order_owner.first_name} {order_owner.last_name} "
+                f"đã chuyển sang trạng thái: {new_status}"
+            )
+
+            # Gửi notification chỉ cho user sở hữu order
             send_order_notification(order_owner, title, body)
+
+            print(f"[DEBUG] Sending notification to user {order_owner.id} with status {new_status}")
 
         return updated_instance
         
