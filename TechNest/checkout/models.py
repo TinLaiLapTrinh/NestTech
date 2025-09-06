@@ -1,6 +1,6 @@
 from django.db import models
 from utils.models import BaseModel, Image
-from utils.choice import DeliveryMethods,DeliveryStatus, UserType
+from utils.choice import DeliveryMethods,DeliveryStatus, UserType, PaymentMethod, PaymentStatus
 from utils.geocoding import get_coordinates
 
 class ShoppingCart(models.Model):
@@ -29,6 +29,10 @@ class Order(BaseModel):
     receiver_phone_number = models.CharField(max_length=13,null=False)
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
+
+    payment_status = models.CharField(max_length=20, choices=PaymentStatus.CHOICES, default=PaymentStatus.PENDING)
+    payment_method = models.CharField(max_length=20, choices=PaymentMethod.CHOICES, default=PaymentMethod.COD)
+
 
     def save(self, *args, **kwargs):
         """

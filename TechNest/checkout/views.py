@@ -1,9 +1,16 @@
 from django.shortcuts import render
+from django.conf import settings
+import stripe
+from rest_framework.views import APIView
 from rest_framework import mixins, parsers, status, viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.decorators import action
+from django.utils.decorators import method_decorator
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated,AllowAny
+from django.views.decorators.csrf import csrf_exempt
+
+from django.http import HttpResponse
 from accounts.perms  import IsCustomer, IsSupplier, IsDeliveryPerson
 from utils.choice import UserType
 from checkout.perms import IsShoppingCartOwner, IsOrderOwner, IsDeliveryPersonOrder, IsOrderRequest
@@ -12,8 +19,25 @@ from .serializers import (ShoppingCartItemSerializer, ShoppingCartListItemSerial
                            ShoppingCartSerializer,OrderSerializer,
                            OrderDetailSerializer,OrderListSerializer, OrderRequestSerializer)
 from utils.choice import DeliveryStatus
-
+from utils.vnpay import VNPay
+import requests
+from time import time
+from datetime import datetime
+import json
+import hmac
+import hashlib
+import uuid
+import urllib.parse
+import urllib.request
 from .paginators import ShoppingCartItemPaginator, OrderDetailItemPaginator
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from django.conf import settings
+from .models import Order, PaymentStatus, PaymentMethod
+
 
 
 
@@ -234,3 +258,64 @@ class OrderViewSet(viewsets.GenericViewSet,
                         'detail_id': detail.id,
                         'status': detail.status},
                         status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=["post"], url_path="pay-vnpay")
+    def pay_vnpay(self, request, pk=None):
+        """
+        Tạo link thanh toán VNPAY cho order có id=pk
+        """
+        order = self.get_object()
+        vnp = VNPay()
+
+        vnp.requestData['vnp_Version'] = '2.1.0'
+        vnp.requestData['vnp_Command'] = 'pay'
+        vnp.requestData['vnp_TmnCode'] = settings.VNPAY_TMN_CODE
+        vnp.requestData['vnp_Amount'] = int(order.total) * 100
+        vnp.requestData['vnp_CurrCode'] = 'VND'
+        vnp.requestData['vnp_TxnRef'] = str(order.id)
+        vnp.requestData['vnp_OrderInfo'] = f"Thanh toán đơn hàng #{order.id}"
+        vnp.requestData['vnp_OrderType'] = 'other'
+        vnp.requestData['vnp_Locale'] = 'vn'
+        vnp.requestData['vnp_CreateDate'] = datetime.now().strftime('%Y%m%d%H%M%S')
+        vnp.requestData['vnp_IpAddr'] = request.META.get('REMOTE_ADDR', '127.0.0.1')
+        vnp.requestData['vnp_ReturnUrl'] = settings.VNPAY_RETURN_URL  # URL gọi lại đây
+
+        payment_url = vnp.get_payment_url(settings.VNPAY_PAYMENT_URL, settings.VNPAY_HASH_SECRET_KEY)
+
+        # Cập nhật trạng thái order
+        order.payment_method = "vnpay"
+        order.payment_status = "pending"
+        order.save(update_fields=['payment_method', 'payment_status'])
+
+        return Response({"pay_url": payment_url}, status=200)
+
+@csrf_exempt
+@api_view(['GET'])
+def vnpay_return(request):
+    """
+    Callback VNPAY: cập nhật trạng thái thanh toán dựa trên vnp_TxnRef
+    """
+    
+    print(f"data trả về: {request.GET.dict()}")
+    inputData = request.GET.dict()
+    vnp = VNPay()
+    vnp.responseData = inputData
+
+    order_id = inputData.get('vnp_TxnRef')
+    if not order_id:
+        return Response({'message': 'missing order id'}, status=400)
+
+    try:
+        order = Order.objects.get(id=order_id)
+    except Order.DoesNotExist:
+        return Response({'message': 'Order no exist'}, status=404)
+    raw_query_string = request.META['QUERY_STRING']
+
+    response_code = inputData.get('vnp_ResponseCode')
+    order.payment_status = "paid" if response_code == "00" else "failed"
+    order.save(update_fields=['payment_status'])
+    return Response({
+        'message': 'Success',
+        'order_id': order.id,
+        'payment_status': order.payment_status
+    })

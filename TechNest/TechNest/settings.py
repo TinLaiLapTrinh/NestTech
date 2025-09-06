@@ -19,6 +19,9 @@ from django.utils.translation import gettext_lazy as _
 BASE_DIR = Path(__file__).resolve().parent.parent
 from django.templatetags.static import static
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # REST_FRAMEWORK = {
 #     'DEFAULT_RENDERER_CLASSES': [
 #         'rest_framework.renderers.JSONRenderer',
@@ -40,7 +43,8 @@ ALLOWED_HOSTS = [
      "127.0.0.1",
      "10.133.216.48",
      "10.189.114.102",
-     "10.189.114.149"
+     "10.189.114.149",
+     "88d36a353e4c.ngrok-free.app"
 ]
 
 
@@ -204,9 +208,9 @@ OAUTH2_PROVIDER = {
 }
 
 cloudinary.config(
-    cloud_name='dzd5jyp6o',
-    api_key='997166633461435',
-    api_secret='N613u569QF0rczTar8XVQJPNvjc',
+    cloud_name=os.getenv("CLOUNDINARY_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
     secure=True,
 )
 
@@ -215,6 +219,11 @@ OAUTH2_PROVIDER = {
     "ACCESS_TOKEN_EXPIRE_SECONDS": 3600,
     "GRANT_TYPES": ["password", "refresh_token", "authorization_code"],
 }
+
+VNPAY_TMN_CODE = os.getenv("VNPAY_TMN_CODE")
+VNPAY_HASH_SECRET_KEY = os.getenv("VNPAY_HASH_SECRET_KEY")
+VNPAY_PAYMENT_URL = os.getenv("VNPAY_PAYMENT_URL")
+VNPAY_RETURN_URL = os.getenv("VNPAY_RETURN_URL")
 
 CLIENT_ID = os.getenv("OATUH2_CLIENT_ID")
 CLIENT_SECRET = os.getenv("OATUH2_CLIENT_SECRET")

@@ -7,5 +7,6 @@ router.register("shoppingcart", views.ShoppingCartViewSet,basename='shopping-car
 router.register("order",views.OrderViewSet,basename='order')
 router.register("order-detail",views.OrderDetailViewSet,basename='order-detail')
 urlpatterns = [
-    path('',include(router.urls))
+    path('',include(router.urls)),
+    path("payment/vnpay-return/", views.vnpay_return, name="vnpay-return"),
 ]
