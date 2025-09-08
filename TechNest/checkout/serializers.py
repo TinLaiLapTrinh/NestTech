@@ -2,8 +2,8 @@ from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from utils.choice import UserType, DeliveryMethods, DeliveryStatus
 from utils.serializers import ImageSerializer
-from .models import Order,OrderDetail,ShoppingCart, ShoppingCartItem
-from products.models import ProductVariant, Product, VariantOptionValue
+from .models import Order,OrderDetail,ShoppingCart, ShoppingCartItem, OrderDetailConfirmImage
+from products.models import ProductVariant, Product, VariantOptionValue, Rate
 from locations.models import ShippingRoute, ShippingRate
 from products.serializers import ProductVariantGetSerializer
 from django.db import transaction
@@ -95,15 +95,16 @@ class OrderDetailSerializer(serializers.ModelSerializer):
     delivery_route = serializers.PrimaryKeyRelatedField(read_only=True)  
     delivery_charge = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)  
     product = serializers.PrimaryKeyRelatedField(queryset=ProductVariant.objects.all())
+    image_confirm = ImageSerializer(many=True, read_only = True)
 
     class Meta:
         model = OrderDetail
         fields = [
             "id","product", "quantity", "price","distance",
             "delivery_route","order",
-            "delivery_charge","delivery_status","delivery_person",
+            "delivery_charge","delivery_status","delivery_person","image_confirm"
         ]
-        read_only_fields = ["product", "price","delivery_person","order"]
+        read_only_fields = ["product", "price","delivery_person","order","image_confirm"]
     
     def to_representation(self, instance):
         
@@ -228,6 +229,54 @@ class OrderDetailSerializer(serializers.ModelSerializer):
 
         return updated_instance
         
+class OrderDetailConfirmImageSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField()
+
+    class Meta:
+        model = OrderDetailConfirmImage
+        fields = ["id", "image", "order"]
+        extra_kwargs = {
+            "order": {"required": False}
+        }
+
+    def validate_image(self, value):
+        max_size = 10 * 1024 * 1024
+        allowed_types = ["image/jpeg", "image/png", "image/jpg"]
+
+        if value.size > max_size:
+            raise serializers.ValidationError(
+                f"Kích thước ảnh {value.name} vượt quá 10MB"
+            )
+        if value.content_type not in allowed_types:
+            raise serializers.ValidationError(
+                f"File {value.name} không đúng định dạng ảnh"
+            )
+        return value
+    
+
+    def create(self, validated_data):
+        return super().create(validated_data)
+    
+class RateSerializer(serializers.ModelSerializer):
+    owner_name = serializers.CharField(source="owner.username", read_only=True)
+    order_id = serializers.IntegerField(source="order_detail.order.id", read_only=True)
+
+    class Meta:
+        model = Rate
+        fields = [
+            "id",
+            "rate",
+            "content",
+            "owner_name",
+            "order_id",
+            "created_at",
+        ]
+
+    def create(self, validated_data):
+        # order_detail, product, owner sẽ được set từ view
+        return super().create(validated_data)
+
+
 
 
 class OrderListSerializer(serializers.ModelSerializer):

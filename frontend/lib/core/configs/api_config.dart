@@ -18,6 +18,7 @@ class ApiConfig {
   static String productVariantDetai(int id, int variantId) => "/product/$id/variant/$variantId/";
   static String options(int id)=>"/products/$id/get-options/";
   static const String saveFcmToken="/save-fcm-token/";
+  static String getRate(int id)=>"/products/$id/rates/";
   
   // Location
   static String getProvinces = "/locations/province/";
@@ -43,6 +44,8 @@ class ApiConfig {
   static String deleteOrderDetailItem(int id, int idItem) => "/order/$id/delete-order-detail/$idItem/";
   static String orderDetail = "/order-detail/";
   static String orderDetailUpdate(int id) =>"/order-detail/$id/";
+  static String confirmOrderDetail(int id)=>"/order-detail/$id/delivered/";
+  static String ratingProduct(int id)=>"/order-detail/$id/rate-product/";
 
   // cart
   static String shoppingCart = "/shoppingcart/";

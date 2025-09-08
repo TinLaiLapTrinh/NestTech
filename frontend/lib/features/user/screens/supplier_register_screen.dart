@@ -259,31 +259,39 @@ class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
 
   void _submitForm() async {
     final req = SupplierRegisterRequest(
-  username: _usernameCtrl.text,
-  password: _passwordCtrl.text,
-  firstName: _firstNameCtrl.text,
-  lastName: _lastNameCtrl.text,
-  dob: _dobCtrl.text,
-  email: _emailCtrl.text,
-  address: _addressCtrl.text,
-  phoneNumber: _phoneCtrl.text,
-  productName: _productNameCtrl.text,
-  productDescription: _descriptionCtrl.text,
-  productMinPrice: _minPriceCtrl.text,
-  productMaxPrice: _maxPriceCtrl.text,
-  productCategory: _selectedCategory!.id.toString(),
-  productProvince: _selectedProvince!.code,
-  productDistrict: _selectedDistrict!.code,
-  productWard: _selectedWard!.code,
-  productAddress: _productAddressCtrl.text,
-  productImages: _images,
-);
+      username: _usernameCtrl.text,
+      password: _passwordCtrl.text,
+      firstName: _firstNameCtrl.text,
+      lastName: _lastNameCtrl.text,
+      dob: _dobCtrl.text,
+      email: _emailCtrl.text,
+      address: _addressCtrl.text,
+      phoneNumber: _phoneCtrl.text,
+      productName: _productNameCtrl.text,
+      productDescription: _descriptionCtrl.text,
+      productMinPrice: _minPriceCtrl.text,
+      productMaxPrice: _maxPriceCtrl.text,
+      productCategory: _selectedCategory!.id.toString(),
+      productProvince: _selectedProvince!.code,
+      productDistrict: _selectedDistrict!.code,
+      productWard: _selectedWard!.code,
+      productAddress: _productAddressCtrl.text,
+      productImages: _images,
+    );
 
-    try {
-      final result = await UserService.registerSupplier(req);
-      debugPrint("Đăng ký thành công: $result");
-    } catch (e) {
-      debugPrint("Lỗi đăng ký supplier: $e");
+    final result = await UserService.registerSupplier(req);
+
+    if (result) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Đăng ký supplier thành công!")));
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Đăng ký supplier thất bại!")));
+
+      // Có thể chuyển sang màn hình khác sau khi đăng ký thành công
+      // Navigator.pushReplacementNamed(context, "/home");
     }
   }
 

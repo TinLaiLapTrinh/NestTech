@@ -18,6 +18,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   late Future<ProductDetailModel> _productFuture;
   final NumberFormat _formatter = NumberFormat("#,###", "vi_VN");
   int _quantity = 1;
+  List<Rate> rates = [];
 
   Map<String, String?> selectedOptions = {}; // Lưu lựa chọn
 
@@ -25,9 +26,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   void initState() {
     super.initState();
     _productFuture = ProductService.getProductDetail(widget.productId);
+    _fetchRate(widget.productId);
   }
 
-  /// Hàm tìm variant phù hợp với lựa chọn
+  Future<void> _fetchRate(int id) async {
+    try {
+      final res = await ProductService.getRate(id); // res là List<Rate>
+      setState(() {
+        rates = res; // rates nên khai báo là List<Rate>
+      });
+    } catch (e) {
+      print("Lỗi khi lấy rate: $e");
+    }
+  }
+
   ProductVariant? findMatchingVariant(ProductDetailModel product) {
     for (var variant in product.variants) {
       bool ok = true;
@@ -182,7 +194,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                   const Divider(),
 
-                  // Số lượng + thêm vào giỏ
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -213,8 +224,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           width: double.infinity,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                               backgroundColor: Colors.redAccent,
                             ),
                             onPressed: (matchedVariant == null)
@@ -223,25 +233,34 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     try {
                                       // Thêm vào giỏ
                                       await CheckoutService.addToCart(
-                                          matchedVariant.id, _quantity);
+                                        matchedVariant.id,
+                                        _quantity,
+                                      );
 
                                       if (!mounted) return;
 
                                       // Option description
-                                      final optionDesc = matchedVariant.optionValues
-                                          .map((ov) => "${ov.option.type}: ${ov.value}")
+                                      final optionDesc = matchedVariant
+                                          .optionValues
+                                          .map(
+                                            (ov) =>
+                                                "${ov.option.type}: ${ov.value}",
+                                          )
                                           .join(", ");
 
                                       // Thumbnail
-                                      final thumbnail =
-                                          getThumbnail(matchedVariant, product);
+                                      final thumbnail = getThumbnail(
+                                        matchedVariant,
+                                        product,
+                                      );
 
                                       // Hiển thị Bottom Sheet
                                       showModalBottomSheet(
                                         context: context,
                                         shape: const RoundedRectangleBorder(
                                           borderRadius: BorderRadius.vertical(
-                                              top: Radius.circular(16)),
+                                            top: Radius.circular(16),
+                                          ),
                                         ),
                                         builder: (_) {
                                           return Padding(
@@ -264,14 +283,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                 Expanded(
                                                   child: Column(
                                                     crossAxisAlignment:
-                                                        CrossAxisAlignment.start,
+                                                        CrossAxisAlignment
+                                                            .start,
                                                     children: [
                                                       Text(
                                                         product.name,
                                                         style: const TextStyle(
-                                                            fontSize: 16,
-                                                            fontWeight:
-                                                                FontWeight.bold),
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
                                                       ),
                                                       const SizedBox(height: 4),
                                                       Text(
@@ -279,27 +300,30 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                             ? optionDesc
                                                             : "Mặc định",
                                                         style: const TextStyle(
-                                                            color: Colors.grey),
+                                                          color: Colors.grey,
+                                                        ),
                                                       ),
                                                       const SizedBox(height: 6),
                                                       Text(
                                                         "Số lượng: $_quantity",
                                                         style: const TextStyle(
-                                                            fontSize: 14),
+                                                          fontSize: 14,
+                                                        ),
                                                       ),
                                                       const SizedBox(height: 6),
                                                       Text(
                                                         "Giá: ${_formatter.format(matchedVariant.price)} đ",
                                                         style: const TextStyle(
-                                                            fontSize: 15,
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            color:
-                                                                Colors.redAccent),
+                                                          fontSize: 15,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color:
+                                                              Colors.redAccent,
+                                                        ),
                                                       ),
                                                     ],
                                                   ),
-                                                )
+                                                ),
                                               ],
                                             ),
                                           );
@@ -307,17 +331,89 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                       );
                                     } catch (e) {
                                       if (!mounted) return;
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text("Lỗi: $e")));
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(content: Text("Lỗi: $e")),
+                                      );
                                     }
                                   },
                             child: const Text(
                               "Thêm vào giỏ hàng",
                               style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.bold),
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
+                      ],
+                    ),
+                  ),
+
+                  const Divider(),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Đánh giá sản phẩm",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        if (rates.isEmpty) const Text("Chưa có đánh giá nào"),
+                        ...rates.map((r) {
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        r.ownerName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Row(
+                                        children: List.generate(
+                                          5,
+                                          (index) => Icon(
+                                            index < r.rate
+                                                ? Icons.star
+                                                : Icons.star_border,
+                                            color: Colors.amber,
+                                            size: 16,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(r.content),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    DateFormat(
+                                      "dd/MM/yyyy HH:mm",
+                                    ).format(r.createdAt),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ],
                     ),
                   ),

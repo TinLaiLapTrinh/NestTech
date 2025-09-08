@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:frontend/features/product/models/product_model.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../core/configs/api_config.dart';
@@ -50,7 +50,7 @@ class UserService {
       throw Exception('Failed to register account: ${response.body}');
     }
   }
-   static Future<Map<String, dynamic>> registerSupplier(SupplierRegisterRequest request) async {
+   static Future<bool> registerSupplier(SupplierRegisterRequest request) async {
     final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.supplierRegister);
 
 
@@ -59,21 +59,12 @@ class UserService {
     final streamedResponse = await multipartRequest.send();
     final response = await http.Response.fromStream(streamedResponse);
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final data = jsonDecode(response.body);
-
-      // parse user + product từ response
-      final user = UserModel.fromJson(data['user']);
-      final product = ProductModel.fromJson(data['product']);
-
-      return {
-        "message": data["message"],
-        "user": user,
-        "product": product,
-      };
-    } else {
-      throw Exception("Đăng ký supplier thất bại: ${response.body}");
-    }
+     if (response.statusCode == 200 || response.statusCode == 201) {
+    return true; // thành công
+  } else {
+    debugPrint("Đăng ký supplier thất bại: ${response.body}");
+    return false; // thất bại
+  }
   }
 
   Future<void> saveFcmToken(String token) async {

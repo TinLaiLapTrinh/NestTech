@@ -189,10 +189,15 @@ class SupplierRegister(serializers.ModelSerializer):
                 # Tạo supplier (User)
                 supplier = User.objects.create(**validated_data)
                 supplier.set_password(password)
+                supplier.user_type = UserType.SUPPLIER
+                supplier.active = False
                 supplier.save()
 
                 # Tạo product
                 product = Product.objects.create(owner=supplier, **product_data)
+
+                product.active = False
+                product.save()
 
                 # Lưu ảnh sản phẩm
                 if product_images:
@@ -204,7 +209,6 @@ class SupplierRegister(serializers.ModelSerializer):
                 return {"user": supplier, "product": product}
 
         except Exception as e:
-            # Tùy logic có thể raise ValidationError để DRF trả về 400
             from rest_framework.exceptions import ValidationError
             raise ValidationError({"error": f"Tạo supplier/product thất bại: {str(e)}"})
 

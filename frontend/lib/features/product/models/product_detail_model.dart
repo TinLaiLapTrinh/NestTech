@@ -212,3 +212,32 @@ class OptionType {
     return OptionType(type: json['type']);
   }
 }
+
+class Rate {
+  final int id;
+  final double rate;
+  final String content;
+  final String ownerName;
+  final int orderId;
+  final DateTime createdAt;
+
+  Rate({
+    required this.id,
+    required this.rate,
+    required this.content,
+    required this.ownerName,
+    required this.orderId,
+    required this.createdAt,
+  });
+
+  factory Rate.fromJson(Map<String, dynamic> json) {
+    return Rate(
+      id: json['id'],
+      rate: (json['rate'] as num).toDouble(),
+      content: json['content'],
+      ownerName: json['owner_name'],
+      orderId: json['order_id'],
+      createdAt: DateTime.parse(json['created_at']),
+    );
+  }
+}

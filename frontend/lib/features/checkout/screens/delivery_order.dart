@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:frontend/features/checkout/services/checkout_service.dart';
+import 'package:image_picker/image_picker.dart';
 
 class DeliveryOrderScreen extends StatefulWidget {
   const DeliveryOrderScreen({super.key});
@@ -9,7 +12,7 @@ class DeliveryOrderScreen extends StatefulWidget {
 }
 
 class _DeliveryOrderScreenState extends State<DeliveryOrderScreen> {
-  List<dynamic> _orders = [];
+  final List<dynamic> _orders = [];
   bool _isLoading = false;
   bool _hasMore = true;
   int _currentPage = 1;
@@ -18,18 +21,14 @@ class _DeliveryOrderScreenState extends State<DeliveryOrderScreen> {
   final ScrollController _scrollController = ScrollController();
 
   final List<String> filterStatuses = [
-    "pending",
-    "confirm",
-    "processing",
-    "cancelled",
     "shipped",
     "returned_to_sender",
+    "delivered",
     "refunded",
   ];
 
   final List<String> allowedUpdateStatuses = [
-    "confirm",
-    "processing",
+    "delivered",
     "cancelled",
     "shipped",
   ];
@@ -79,17 +78,58 @@ class _DeliveryOrderScreenState extends State<DeliveryOrderScreen> {
     } catch (e) {
       debugPrint("Error loading orders: $e");
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _updateStatusDelivery(int id, String status) async {
-    try {
-      await CheckoutService.orderRequestUpdate(id, status);
-      
-      _loadOrders(initial: true);
-    } catch (e) {
-      debugPrint("Failed to update order: $e");
+  Future<void> _onStatusChanged(int orderId, String newStatus) async {
+    if (newStatus == "delivered") {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(source: ImageSource.gallery);
+
+      if (picked == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Bạn phải chọn ảnh để xác nhận giao hàng")),
+        );
+        return;
+      }
+
+      setState(() => _isLoading = true);
+
+      final uploadRes = await CheckoutService.orderConfirmImage(
+        orderId,
+        File(picked.path),
+      );
+
+      if (uploadRes['success'] == true) {
+        final res = await CheckoutService.orderRequestUpdate(orderId, newStatus);
+
+        if (res['success'] == true) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Cập nhật trạng thái thành công")),
+          );
+          _loadOrders(initial: true);
+        } else {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Lỗi khi cập nhật trạng thái")),
+          );
+        }
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Upload ảnh thất bại")),
+        );
+      }
+
+      if (mounted) setState(() => _isLoading = false);
+    } else {
+      final res = await CheckoutService.orderRequestUpdate(orderId, newStatus);
+      if (res['success'] == true) {
+        _loadOrders(initial: true);
+      }
     }
   }
 
@@ -148,9 +188,9 @@ class _DeliveryOrderScreenState extends State<DeliveryOrderScreen> {
                       }
 
                       final order = _orders[index];
-                      final product = order['product_variant']['product'];
+                      final product = order['product']['product'];
                       final optionValues =
-                          order['product_variant']['option_values'] as List;
+                          order['product']['option_values'] as List;
 
                       return Card(
                         margin: const EdgeInsets.all(8),
@@ -207,7 +247,7 @@ class _DeliveryOrderScreenState extends State<DeliveryOrderScreen> {
                                 }).toList(),
                                 onChanged: (status) {
                                   if (status != null) {
-                                    _updateStatusDelivery(order['id'], status);
+                                    _onStatusChanged(order['id'], status);
                                   }
                                 },
                               ),
@@ -302,7 +342,7 @@ class DeliveryOrderDetailScreen extends StatelessWidget {
                   ),
                 ),
               );
-            }).toList()
+            })
           ],
         ),
       ),

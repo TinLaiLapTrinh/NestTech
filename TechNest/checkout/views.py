@@ -1,6 +1,5 @@
 from django.shortcuts import render
 from django.conf import settings
-import stripe
 from rest_framework.views import APIView
 from rest_framework import mixins, parsers, status, viewsets
 from rest_framework.exceptions import PermissionDenied
@@ -13,11 +12,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from accounts.perms  import IsCustomer, IsSupplier, IsDeliveryPerson
 from utils.choice import UserType
-from checkout.perms import IsShoppingCartOwner, IsOrderOwner, IsDeliveryPersonOrder, IsOrderRequest
+from checkout.perms import IsShoppingCartOwner, IsOrderDetailOwner, IsOrderOwner,IsDeliveryPersonOrder, IsOrderRequest
 from .models import ShoppingCart, ShoppingCartItem, Order, OrderDetail
 from .serializers import (ShoppingCartItemSerializer, ShoppingCartListItemSerializer,
                            ShoppingCartSerializer,OrderSerializer,
-                           OrderDetailSerializer,OrderListSerializer, OrderRequestSerializer)
+                           OrderDetailSerializer,OrderListSerializer,
+                             OrderRequestSerializer, OrderDetailConfirmImageSerializer,
+                             RateSerializer)
 from utils.choice import DeliveryStatus
 from utils.vnpay import VNPay
 import requests
@@ -137,11 +138,20 @@ class OrderDetailViewSet(viewsets.GenericViewSet,mixins.RetrieveModelMixin, mixi
     def get_permissions(self):
         if self.action in ["update", "partial_update"]:
             return [(IsOrderRequest | IsDeliveryPerson)()]
-        return [(IsSupplier | IsDeliveryPerson)()]
+        if self.action == 'upload_confirm_img':
+            return [IsDeliveryPerson()]
+        if self.action == 'rate_product':
+            return[IsOrderDetailOwner()]
+        return [AllowAny()]
     
     def get_serializer_class(self):
         if self.action in ['update','partial_update','list']:
-            return OrderDetailSerializer     
+            return OrderDetailSerializer    
+        if self.action == 'upload_confirm_img':
+            return OrderDetailConfirmImageSerializer 
+        if self.action == 'rate_product':
+            return RateSerializer
+            
         return OrderRequestSerializer
     
     def get_queryset(self):
@@ -157,6 +167,10 @@ class OrderDetailViewSet(viewsets.GenericViewSet,mixins.RetrieveModelMixin, mixi
         if user.user_type == UserType.DELIVER_PERSON:
             
             return OrderDetail.objects.filter(delivery_person=user)
+        
+        if user.user_type == UserType.CUSTOMER:
+
+            return OrderDetail.objects.filter(order__owner=user)
 
         # Các user loại khác thì không thấy gì
         return OrderDetail.objects.none()
@@ -184,9 +198,51 @@ class OrderDetailViewSet(viewsets.GenericViewSet,mixins.RetrieveModelMixin, mixi
         print("VIEWSET RESPONSE:", response.data)
         return response
 
+    @action(detail=True, methods=['post'], url_path='delivered')
+    def upload_confirm_img(self, request, pk=None):
+        order_detail = self.get_object()
 
+        serializer = OrderDetailConfirmImageSerializer(
+            data=request.data,
+            context={"order": order_detail}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save(order=order_detail)
 
-    
+        return Response(
+            {
+                "message": "Xác nhận giao hàng thành công!",
+                "order": OrderDetailSerializer(order_detail).data
+            },
+            status=status.HTTP_201_CREATED
+        )
+    @action(detail=True, methods=['post'], url_path='rate-product')
+    def rate_product(self, request, pk=None):
+        order_detail = self.get_object()
+
+        if hasattr(order_detail, "rate"):
+            return Response(
+                {"message": "Đơn hàng này đã được đánh giá rồi."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        rate = serializer.save(
+            order_detail=order_detail,
+            product=order_detail.product.product,  # product gốc từ ProductVariant
+            owner=request.user,
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+
+        return Response(
+            {
+                "message": "Đánh giá thành công!",
+                "rate": RateSerializer(rate).data
+            },
+            status=status.HTTP_201_CREATED
+        )
 
     
 class OrderViewSet(viewsets.GenericViewSet,

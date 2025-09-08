@@ -22,14 +22,6 @@ from django.templatetags.static import static
 from dotenv import load_dotenv
 load_dotenv()
 
-# REST_FRAMEWORK = {
-#     'DEFAULT_RENDERER_CLASSES': [
-#         'rest_framework.renderers.JSONRenderer',
-#     ],
-# }
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-dm60fy80nxvu0d7q5f(e%kk7bx-src4e+m*z%bc)byh=q9x*38'

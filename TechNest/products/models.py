@@ -22,7 +22,7 @@ class Product(BaseModel):
     min_price = models.FloatField(null=True)
     owner = models.ForeignKey('accounts.User', related_name='products',on_delete=models.CASCADE, limit_choices_to={'user_type':UserType.SUPPLIER})
     description = models.TextField(null=True)
-    rate_avg=models.FloatField(default=0.0)
+    # rate_avg=models.FloatField(default=0.0)
     category = models.ForeignKey('Category',related_name="products",on_delete=models.PROTECT, null=True)
     sold_quantity = models.PositiveIntegerField(default=0)
 
@@ -104,7 +104,7 @@ class Comment(BaseModel):
 
 class Rate(BaseModel):
     product = models.ForeignKey('Product',related_name='rates',on_delete=models.CASCADE)
-    order_detail = models.ForeignKey('checkout.OrderDetail', related_name='rate',on_delete=models.SET_NULL, null=True)
+    order_detail = models.OneToOneField('checkout.OrderDetail', related_name='rate',on_delete=models.SET_NULL, null=True)
     rate = models.FloatField(default=0.0,null=False)
     content = models.TextField(null=True)
     ip_address = models.GenericIPAddressField(null=True)

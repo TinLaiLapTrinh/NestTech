@@ -11,6 +11,7 @@ class ProductModel {
   final String ward;
   final int soldQuantity;
   final OwnerModel owner;
+  final RateModel rate; // 👈 thêm
 
   ProductModel({
     required this.id,
@@ -25,6 +26,7 @@ class ProductModel {
     required this.ward,
     required this.soldQuantity,
     required this.owner,
+    required this.rate,
   });
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
@@ -43,10 +45,24 @@ class ProductModel {
       ward: json['ward'],
       soldQuantity: json['sold_quantity'],
       owner: OwnerModel.fromJson(json['owner']),
+      rate: RateModel.fromJson(json['rate'] ?? {}), // 👈 parse object
     );
   }
 }
 
+class RateModel {
+  final int quantity;
+  final double avg;
+
+  RateModel({required this.quantity, required this.avg});
+
+  factory RateModel.fromJson(Map<String, dynamic> json) {
+    return RateModel(
+      quantity: json['quantity'] ?? 0,
+      avg: (json['avg'] ?? 0).toDouble(),
+    );
+  }
+}
 class ProductImage {
   final int id;
   final String alt;

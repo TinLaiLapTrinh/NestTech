@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/core/utils/token_storage.dart';
 import 'package:frontend/features/auth/screens/login_screen.dart';
 import 'package:frontend/features/checkout/screens/cart_screen.dart';
+import 'package:frontend/features/checkout/screens/delivery_order.dart';
 import 'package:frontend/features/checkout/screens/order_request_screen.dart';
 import 'package:frontend/features/checkout/screens/order_screen.dart';
 import 'package:frontend/features/location/screens/location_manager_screen.dart';
@@ -85,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final deliveryPages = [
       StatsScreen(),
       const OrderRequestScreen(),
-      const OrderRequestScreen(),
+      const DeliveryOrderScreen(),
       const ProfileScreen(),
       if (isLoggedIn)
         _buildWelcomeWidget("Delivery Person", userProvider)

@@ -1,14 +1,16 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:frontend/core/configs/api_config.dart';
 import 'package:frontend/core/configs/headers.dart';
+import 'package:frontend/features/product/models/product_detail_model.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 class CheckoutService {
   static Future<dynamic> getCartItems() async {
     final headers = await ApiHeaders.getAuthHeaders();
 
-    // Build query params nếu có
     final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.shoppingCartItems);
 
     final response = await http.get(uri, headers: headers);
@@ -74,22 +76,45 @@ class CheckoutService {
     }
   }
 
- static Future<Map<String, dynamic>> addOrder(Map<String, dynamic> payload) async {
-  final headers = await ApiHeaders.getAuthHeaders();
-  final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.addOrder);
+  static Future<Map<String, dynamic>> addOrder(
+    Map<String, dynamic> payload,
+  ) async {
+    final headers = await ApiHeaders.getAuthHeaders();
+    final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.addOrder);
 
+    final response = await http.post(
+      uri,
+      headers: {...headers, "Content-Type": "application/json"},
+      body: jsonEncode(payload),
+    );
+
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      return json.decode(response.body) as Map<String, dynamic>;
+    } else {
+      // decode lỗi server nếu có
+      final error = json.decode(response.body);
+      throw Exception(
+        'Failed to add order: ${response.statusCode}, ${error.toString()}',
+      );
+    }
+  }
+
+  static Future<Rate> ratingProduct(int id, double rate, String content) async {
+  final header = await ApiHeaders.getAuthHeaders();
+  final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.ratingProduct(id));
   final response = await http.post(
     uri,
-    headers: {...headers, "Content-Type": "application/json"},
-    body: jsonEncode(payload),
+    headers: header,
+    body: jsonEncode({"rate": rate, "content": content}),
+  
   );
+  
 
-  if (response.statusCode == 201 || response.statusCode == 200) {
-    return json.decode(response.body) as Map<String, dynamic>;
+  if (response.statusCode == 201 || response.statusCode == 200) { // 201 hợp lý
+    final data = json.decode(response.body);
+    return Rate.fromJson(data['rate']);
   } else {
-    // decode lỗi server nếu có
-    final error = json.decode(response.body);
-    throw Exception('Failed to add order: ${response.statusCode}, ${error.toString()}');
+    throw Exception('Failed to rate order: ${response.statusCode}');
   }
 }
 
@@ -117,7 +142,7 @@ class CheckoutService {
     final response = await http.get(uri, headers: header);
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      return data['results'] as List<dynamic>; 
+      return data['results'] as List<dynamic>;
     } else {
       throw Exception('Failed to load order: ${response.statusCode}');
     }
@@ -135,23 +160,22 @@ class CheckoutService {
       headers: header,
       body: jsonEncode({"delivery_status": deliveryStatus}),
     );
-    
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       return data as Map<String, dynamic>;
     } else {
-      
       throw Exception('Failed to update detail order: ${response.statusCode}');
     }
   }
 
-  static Future<dynamic> orderUpdateStatus(int id,String Status) async{
+  static Future<dynamic> orderUpdateStatus(int id, String Status) async {
     final header = await ApiHeaders.getAuthHeaders();
     final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.orderDetailUpdate(id));
 
     final response = await http.patch(
-      uri,headers: header,
+      uri,
+      headers: header,
       body: jsonEncode({"delivery_status": Status}),
     );
 
@@ -161,6 +185,34 @@ class CheckoutService {
     } else {
       throw Exception('Failed to update request order: ${response.statusCode}');
     }
+  }
 
+  static Future<dynamic> orderConfirmImage(int id, File image) async {
+    final header = await ApiHeaders.getAuthHeaders();
+    final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.confirmOrderDetail(id));
+
+    var request = http.MultipartRequest('POST', uri);
+
+    request.headers.addAll(header);
+
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'image',
+        image.path,
+        contentType: MediaType('image', 'jpeg'),
+      ),
+    );
+
+    var streamedResponse = await request.send();
+
+    var response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 201) {
+      return response.body; // hoặc jsonDecode(response.body)
+    } else {
+      throw Exception(
+        "Upload failed: ${response.statusCode} - ${response.body}",
+      );
+    }
   }
 }

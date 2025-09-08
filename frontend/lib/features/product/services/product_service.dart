@@ -161,4 +161,19 @@ class ProductService {
       throw Exception("Failed: ${response.statusCode} - ${response.body}");
     }
   }
+
+  static Future<List<Rate>> getRate(int id) async {
+  final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.getRate(id));
+  final response = await http.get(uri);
+
+  if (response.statusCode == 200 || response.statusCode == 201) {
+    final data = json.decode(response.body);
+    return (data['results'] as List)
+        .map((item) => Rate.fromJson(item))
+        .toList();
+  } else {
+    throw Exception("Failed: ${response.statusCode} - ${response.body}");
+  }
+}
+
 }

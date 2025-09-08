@@ -40,6 +40,7 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView):
     
     @action(methods=["post"],detail=False,url_path="customer-register")
     def customer_register(self,request):
+        print(request.data)
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -47,6 +48,7 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     @action(methods=["post"],detail=False, url_path="supplier-register")
     def supplier_register(self,request):
+        print(request.data)
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             serializer.save()

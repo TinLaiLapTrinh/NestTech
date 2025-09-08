@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404
+from django.db.models import Avg, Count
 from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.decorators import action
 from accounts.perms import IsSupplier
@@ -26,6 +27,7 @@ from .serializers import (CategorySerializer,
                         ProductListSerializer,
                         ProductDetailSerializer,
                         )
+from checkout.serializers import RateSerializer
 from .models import Category
 from rest_framework.response import Response
 from django.db.models import Q
@@ -52,6 +54,8 @@ class OptionValueViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
 
 
+
+
 class ProductViewSet(viewsets.GenericViewSet,
     mixins.ListModelMixin,
     mixins.CreateModelMixin,
@@ -63,7 +67,14 @@ class ProductViewSet(viewsets.GenericViewSet,
     pagination_class = ProductPaginator
 
     def get_queryset(self):
-        return Product.objects.filter(active=True, is_deleted=False)
+        return (
+            Product.objects
+            .filter(active=True, is_deleted=False)
+            .annotate(
+                rate_count=Count("rates", distinct=True),
+                rate_avg=Avg("rates__rate")
+            )
+        )
 
     def get_serializer_class(self):
         if self.action in ['create','update', 'partial_update']:
@@ -243,6 +254,23 @@ class ProductViewSet(viewsets.GenericViewSet,
             return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['get'], url_path='rates')
+    def get_rate(self, request, pk=None):
+        product = self.get_object()
+
+
+        rates = product.rates.select_related("owner", "order_detail").all()
+
+        # Có thể thêm filter theo số sao (rate=5), hoặc phân trang
+        page = self.paginate_queryset(rates)
+        if page is not None:
+            serializer = RateSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = RateSerializer(rates, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     
 
 class ProductVariantViewSet(viewsets.GenericViewSet,

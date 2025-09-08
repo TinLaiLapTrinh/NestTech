@@ -25,7 +25,6 @@ class CategorySerializer(serializers.ModelSerializer):
 
     
 class ProductSerializer(serializers.ModelSerializer):
-   
     images = ImageSerializer(many=True, read_only = True)
     upload_images = serializers.ListField(
         child=serializers.ImageField(), write_only=True, required=True
@@ -42,6 +41,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "name": instance.category.type
         }
 
+        
         if instance.province:
             data["province"] = instance.province.full_name
 
@@ -50,6 +50,8 @@ class ProductSerializer(serializers.ModelSerializer):
 
         if instance.ward:
             data["ward"] = instance.ward.full_name
+
+        
 
         return data  
     class Meta:
@@ -398,8 +400,6 @@ class VariantGeneratorSerializer(serializers.Serializer):
         return generated_variants
 
     
-
-
 class ProductVariantSerializer(serializers.ModelSerializer):
     option_values = serializers.ListField(
         child=serializers.IntegerField(), write_only=True
@@ -517,6 +517,8 @@ class ProductOptionSerializer(serializers.ModelSerializer):
         fields = ['id', 'type', 'values']
 
 class ProductListSerializer(serializers.ModelSerializer):
+    rate_count = serializers.IntegerField(read_only=True)
+    rate_avg = serializers.FloatField(read_only=True)
     images = ImageSerializer(many=True, read_only=True)
     sold_quantity = serializers.IntegerField(read_only=True)
     def to_representation(self, instance):
@@ -529,13 +531,22 @@ class ProductListSerializer(serializers.ModelSerializer):
             data["province"] = instance.province.full_name
         if instance.ward:
             data["ward"] = instance.ward.full_name
+
+        data["rate"] = {
+            "quantity": getattr(instance, "rate_count", 0),
+            "avg": getattr(instance, "rate_avg", 0.0),
+        }
+        data.pop("rate_count", None)
+        data.pop("rate_avg", None)
         return data
     class Meta:
         model = Product
         fields = [
             'id', 'name', 'status', 'description',
             'category', 'max_price', 'min_price', 'images',
-            'province', 'ward','sold_quantity'
+            'province', 'ward','sold_quantity',
+            "rate_count",
+            "rate_avg"
         ]
 
 class ProductVariantGetComponentSerializer(serializers.ModelSerializer):
@@ -553,10 +564,11 @@ class ProductVariantGetComponentSerializer(serializers.ModelSerializer):
         return OptionValueGetSerializer(values, many=True).data
 
 class ProductDetailSerializer(serializers.ModelSerializer):
+    rate_count = serializers.IntegerField(read_only=True)
+    rate_avg = serializers.FloatField(read_only=True)
     images = ImageSerializer(many=True, read_only=True)
     variants = ProductVariantGetComponentSerializer(source='product_variants', many=True, read_only=True)
     options = OptionGetSerializer(source='product_options', many=True, read_only=True)
-
     owner = serializers.SerializerMethodField()
     category = serializers.CharField(source="category.type", read_only=True)
     price_range = serializers.SerializerMethodField()
@@ -568,14 +580,15 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'id', 'name', 'status', 'description',
             'owner', 'category',
             'price_range', 'images', 'location',
-            'variants', 'options', 'sold_quantity'
+            'variants', 'options', 'sold_quantity',
+            "rate_count",
+            "rate_avg",
         ]
 
     def get_owner(self, obj):
         return {
             "id": obj.owner.id,
             "name": obj.owner.first_name +" " + obj.owner.last_name,
-            
         }
 
     def get_price_range(self, obj):
@@ -588,5 +601,10 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         return {
             "province": obj.province.name if obj.province else None,
             "ward": obj.ward.name if obj.ward else None
+        }
+    def get_rate(self, instance):
+        return {
+            "quantity": getattr(instance, "rate_count", 0),
+            "avg": getattr(instance, "rate_avg", 0.0)
         }
 

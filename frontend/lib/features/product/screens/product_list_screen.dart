@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:frontend/features/product/screens/product_detail_screen.dart';
 import 'package:intl/intl.dart';
@@ -73,10 +74,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         _hasMore = true;
       }
 
-      final params = {
-        ..._filters,
-        "page": _currentPage.toString(),
-      };
+      final params = {..._filters, "page": _currentPage.toString()};
 
       final newProducts = await ProductService.getProducts(params: params);
       if (!mounted) return;
@@ -167,15 +165,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
                           if (_isLoading) {
                             return const Padding(
                               padding: EdgeInsets.all(16),
-                              child: Center(
-                                  child: CircularProgressIndicator()),
+                              child: Center(child: CircularProgressIndicator()),
                             );
                           } else if (!_hasMore) {
                             return const Padding(
                               padding: EdgeInsets.all(16),
                               child: Center(
                                 child: Text(
-                                  "🎉 Đã tải hết sản phẩm",
+                                  "Đã tải hết sản phẩm",
                                   style: TextStyle(color: Colors.grey),
                                 ),
                               ),
@@ -195,73 +192,97 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   Widget _buildProductCard(ProductModel product) {
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) =>
-                  ProductDetailScreen(productId: product.id)),
-        );
-      },
-      child: Card(
-        elevation: 3,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AspectRatio(
-              aspectRatio: 1,
-              child: product.images.isNotEmpty
-                  ? Image.network(product.images[0].image, fit: BoxFit.cover)
-                  : Container(
-                      color: Colors.grey[200],
-                      child: const Icon(Icons.image_not_supported, size: 40),
-                    ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.name,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 14),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    product.minPrice == product.maxPrice
-                        ? "${_formatter.format(product.minPrice)} đ"
-                        : "${_formatter.format(product.minPrice)} - ${_formatter.format(product.maxPrice)} đ",
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.redAccent),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    product.soldQuantity == 0
-                        ? "Chưa có đơn hàng"
-                        : "Đã bán ${product.soldQuantity}",
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "${product.ward}, ${product.province}",
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-          ],
+  return InkWell(
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ProductDetailScreen(productId: product.id),
         ),
+      );
+    },
+    child: Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AspectRatio(
+            aspectRatio: 1,
+            child: product.images.isNotEmpty
+                ? Image.network(product.images[0].image, fit: BoxFit.cover)
+                : Container(
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.image_not_supported, size: 40),
+                  ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  product.minPrice == product.maxPrice
+                      ? "${_formatter.format(product.minPrice)} đ"
+                      : "${_formatter.format(product.minPrice)} - ${_formatter.format(product.maxPrice)} đ",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.redAccent,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  product.soldQuantity == 0
+                      ? "Chưa có đơn hàng"
+                      : "Đã bán ${product.soldQuantity}",
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "${product.ward}, ${product.province}",
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    RatingBarIndicator(
+                      rating: product.rate.avg,
+                      itemBuilder: (context, index) =>
+                          const Icon(Icons.star, color: Colors.amber),
+                      itemCount: 5,
+                      itemSize: 16.0,
+                      direction: Axis.horizontal,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      "(${product.rate.quantity})",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class SearchAndFilterHeader extends StatefulWidget {

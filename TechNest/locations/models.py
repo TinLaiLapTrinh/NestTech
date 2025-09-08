@@ -2,7 +2,7 @@ from django.db import models
 from utils.choice import DeliveryMethods
 
 class AdministrativeRegion(models.Model):
-    id = models.AutoField(primary_key=True)  # integer NOT NULL primary key
+    id = models.AutoField(primary_key=True) 
     name = models.CharField(max_length=255)
     name_en = models.CharField(max_length=255)
     code_name = models.CharField(max_length=255, null=True, blank=True)
@@ -26,7 +26,7 @@ class AdministrativeUnit(models.Model):
 
 
 class Province(models.Model):
-    code = models.CharField(max_length=20, primary_key=True)  # varchar(20) NOT NULL primary key
+    code = models.CharField(max_length=20, primary_key=True)  
     name = models.CharField(max_length=255)
     name_en = models.CharField(max_length=255, null=True, blank=True)
     full_name = models.CharField(max_length=255)
