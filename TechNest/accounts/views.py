@@ -53,6 +53,7 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+        print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class FollowViewSet(viewsets.GenericViewSet):
@@ -130,10 +131,9 @@ def save_fcm_token(request):
     if not token:
         return Response({"error": "No token provided"}, status=400)
     print(f"{request.data} - {request.user.id}")
-    # Lấy hoặc tạo token
+    
     fcm_token_obj, created = FcmToken.objects.get_or_create(token=token)
     
-    # Gắn user hiện tại vào token nếu chưa có
     if not fcm_token_obj.users.filter(id=request.user.id).exists():
         fcm_token_obj.users.add(request.user)
     

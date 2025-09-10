@@ -91,25 +91,24 @@ class ProductSerializer(serializers.ModelSerializer):
         district = data.get('district') or getattr(self.instance, 'district', None)
         ward = data.get('ward') or getattr(self.instance, 'ward', None)
 
-        # Lấy lại object trong DB để so sánh quan hệ
+
         ward_located = Ward.objects.filter(code=getattr(ward, 'code', None)).select_related("district__province").first() if ward else None
         district_located = District.objects.filter(code=getattr(district, 'code', None)).select_related("province").first() if district else None
 
-        # Validate các trường text
+
         if not name or len(name) < 3:
             raise serializers.ValidationError({"name": "Tên sản phẩm không được để trống và phải ≥3 ký tự."})
         if not description:
             raise serializers.ValidationError({"description": "Mô tả sản phẩm không được để trống."})
 
-        # Validate giá
+
         if max_price is not None and min_price is not None and max_price < min_price:
             raise serializers.ValidationError({"mean-price": "Khoảng giá trị không hợp lệ."})
 
-        # Validate category
         if not category or not Category.objects.filter(id=category.id).exists():
             raise serializers.ValidationError({"category": "Loại sản phẩm không tồn tại."})
 
-        # Validate địa chỉ (province - district - ward phải khớp nhau)
+
         if ward and (not ward_located or not district or ward_located.district != district):
             raise serializers.ValidationError({"location": "Xã/Phường không thuộc Quận/Huyện đã chọn."})
 
@@ -277,7 +276,7 @@ class OptionSerializer(serializers.ModelSerializer):
         option = super().create(validated_data)
         
         for val in values_data:
-            value_payload = {"value": val, "option": option.id}  # thêm option id vào payload
+            value_payload = {"value": val, "option": option.id}
             value_serializer = OptionValueSerializer(
                 data=value_payload
             )

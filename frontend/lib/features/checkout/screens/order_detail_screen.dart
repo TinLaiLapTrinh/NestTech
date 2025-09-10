@@ -57,9 +57,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     } catch (e) {
       debugPrint("Lỗi gửi đánh giá: $e");
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Gửi đánh giá thất bại")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$e")));
     }
   }
 

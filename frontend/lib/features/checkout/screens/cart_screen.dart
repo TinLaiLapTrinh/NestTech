@@ -80,9 +80,9 @@ class _MyCartItemsScreenState extends State<MyCartItemsScreen> {
 
       return {
         "variant":
-            variant, // giữ nguyên variant (chứa id, price, stock, option_values…)
-        "base_product": baseProduct, // giữ thêm base product (name, image…)
-        "quantity": item["quantity"], // số lượng
+            variant, 
+        "base_product": baseProduct, 
+        "quantity": item["quantity"], 
       };
     }).toList();
 

@@ -9,7 +9,7 @@ import '../models/user_register_model.dart';
 
 class UserProvider extends ChangeNotifier {
   UserModel? _currentUser;
-
+  
   UserModel? get currentUser => _currentUser;
 
   bool get isLoggedIn => _currentUser != null;

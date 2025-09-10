@@ -211,9 +211,9 @@ class OrderDetailSerializer(serializers.ModelSerializer):
 
         updated_instance = super().update(instance, validated_data)
 
-        if old_status != new_status:  # Chỉ gửi khi trạng thái thay đổi
+        if old_status != new_status: 
             order_owner = instance.order.owner
-            variant = instance.product  # instance là ProductVariant
+            variant = instance.product  
 
             title = "Cập nhật đơn hàng"
             body = (
@@ -222,7 +222,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
                 f"đã chuyển sang trạng thái: {new_status}"
             )
 
-            # Gửi notification chỉ cho user sở hữu order
+
             send_order_notification(order_owner, title, body)
 
             print(f"[DEBUG] Sending notification to user {order_owner.id} with status {new_status}")
@@ -273,7 +273,7 @@ class RateSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
-        # order_detail, product, owner sẽ được set từ view
+        
         return super().create(validated_data)
 
 
@@ -345,7 +345,7 @@ class OrderSerializer(serializers.ModelSerializer):
                 delivery_charge = Decimal(rate.price)
                 price = Decimal(product_variant.price)
 
-                # Trừ tồn kho
+
                 product_variant.stock -= quantity
                 product_variant.save()
 

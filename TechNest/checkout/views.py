@@ -8,6 +8,8 @@ from django.utils.decorators import method_decorator
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated,AllowAny
 from django.views.decorators.csrf import csrf_exempt
+from utils.tasks import check_spam_rate
+from utils.checker import check_spam
 
 from django.http import HttpResponse
 from accounts.perms  import IsCustomer, IsSupplier, IsDeliveryPerson
@@ -40,7 +42,25 @@ from django.conf import settings
 from .models import Order, PaymentStatus, PaymentMethod
 
 
+AKISMET_API_KEY = "68405bed0dbc"
+BLOG_URL = "127.0.0.1:8000"
 
+def check_spam_with_akismet(rate):
+    data = {
+        "blog": BLOG_URL,
+        "user_ip": rate.ip_address,
+        "user_agent": "Django/RestFramework",
+        "comment_type": "review",
+        "comment_author": rate.owner.username,
+        "comment_content": rate.content
+    }
+    response = requests.post(
+        f"https://{AKISMET_API_KEY}.rest.akismet.com/1.1/comment-check",
+        data=data
+    )
+    is_spam = response.text.lower() == "true"
+    print(f"Review ID {rate.id} spam check result: {is_spam}, value {rate.content}")
+    return is_spam
 
 class ShoppingCartViewSet(viewsets.GenericViewSet,
                           mixins.CreateModelMixin):
@@ -172,7 +192,7 @@ class OrderDetailViewSet(viewsets.GenericViewSet,mixins.RetrieveModelMixin, mixi
 
             return OrderDetail.objects.filter(order__owner=user)
 
-        # Các user loại khác thì không thấy gì
+
         return OrderDetail.objects.none()
 
     def list(self, request):
@@ -231,10 +251,15 @@ class OrderDetailViewSet(viewsets.GenericViewSet,mixins.RetrieveModelMixin, mixi
 
         rate = serializer.save(
             order_detail=order_detail,
-            product=order_detail.product.product,  # product gốc từ ProductVariant
+            product=order_detail.product.product, 
             owner=request.user,
             ip_address=request.META.get('REMOTE_ADDR')
         )
+
+        is_spam = check_spam_with_akismet(rate)
+        rate.is_spam = is_spam
+        rate.save(update_fields=["is_spam"])
+        rate.save()
 
         return Response(
             {
@@ -302,7 +327,7 @@ class OrderViewSet(viewsets.GenericViewSet,
             return Response({'error': 'Chi tiết đơn hàng không tồn tại'},
                             status=status.HTTP_404_NOT_FOUND)
 
-        # Nếu đã giao xong thì không cho hủy
+
         if detail.status in [DeliveryStatus.DELIVERED, DeliveryStatus.REFUNDED]:
             return Response({'error': 'Đơn hàng đã hoàn tất, không thể hủy.'},
                             status=status.HTTP_400_BAD_REQUEST)
@@ -338,7 +363,7 @@ class OrderViewSet(viewsets.GenericViewSet,
 
         payment_url = vnp.get_payment_url(settings.VNPAY_PAYMENT_URL, settings.VNPAY_HASH_SECRET_KEY)
 
-        # Cập nhật trạng thái order
+
         order.payment_method = "vnpay"
         order.payment_status = "pending"
         order.save(update_fields=['payment_method', 'payment_status'])

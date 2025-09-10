@@ -79,14 +79,14 @@ class CustomerRegister(serializers.ModelSerializer):
         extra_kwargs = {"password": {"write_only": True}}
 
     def create(self, validated_data):
-        # tạo user trước
+        
         user_serializer = UserSerializer(data=validated_data)
         if user_serializer.is_valid():
             user = user_serializer.save(
                 is_active=True,
                 user_type=UserType.CUSTOMER
             )
-            # tạo giỏ hàng cho user
+            
             ShoppingCart.objects.create(owner=user)
             return user
         else:
@@ -186,20 +186,20 @@ class SupplierRegister(serializers.ModelSerializer):
 
         try:
             with transaction.atomic():
-                # Tạo supplier (User)
+                
                 supplier = User.objects.create(**validated_data)
                 supplier.set_password(password)
                 supplier.user_type = UserType.SUPPLIER
                 supplier.active = False
                 supplier.save()
 
-                # Tạo product
+
                 product = Product.objects.create(owner=supplier, **product_data)
 
                 product.active = False
                 product.save()
 
-                # Lưu ảnh sản phẩm
+
                 if product_images:
                     ProductImage.objects.bulk_create([
                         ProductImage(product=product, image=image, alt=f"Image for {product.name}")
@@ -246,7 +246,7 @@ class FollowSerializer(serializers.ModelSerializer):
             "user_type": instance.follower.user_type,
         }
 
-        # Thêm thông tin chi tiết của followee
+
         data["followee"] = {
             "id": instance.followee.id,
             "name": f"{instance.followee.first_name} {instance.followee.last_name}".strip(),

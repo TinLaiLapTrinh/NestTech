@@ -86,7 +86,7 @@ class ProductViewSet(viewsets.GenericViewSet,
             return ProductVariantSerializer
         elif self.action=='get_options':
             return ProductOptionSerializer
-        elif self.action in ['my_products','list']:
+        elif self.action in ['my_products','list','deleted_products']:
             return ProductListSerializer
         elif self.action =='retrieve':
             return ProductDetailSerializer
@@ -196,7 +196,7 @@ class ProductViewSet(viewsets.GenericViewSet,
         serializer = ProductVariantSerializer(
             data=variants_data,
             many=True,
-            context={"product": product}  # 🔑 phải truyền product vào đây
+            context={"product": product} 
         )
         serializer.is_valid(raise_exception=True)
         variants = serializer.save()
@@ -262,7 +262,7 @@ class ProductViewSet(viewsets.GenericViewSet,
 
         rates = product.rates.select_related("owner", "order_detail").all()
 
-        # Có thể thêm filter theo số sao (rate=5), hoặc phân trang
+
         page = self.paginate_queryset(rates)
         if page is not None:
             serializer = RateSerializer(page, many=True)

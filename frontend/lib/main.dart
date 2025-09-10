@@ -92,10 +92,10 @@ class _SafeFrameWidgetState extends State<SafeFrameWidget> {
   void initState() {
     super.initState();
 
-    // 4️⃣ Request notification permission (Android 13+ / iOS)
+
     _requestNotificationPermission();
 
-    // 5️⃣ Foreground messages
+
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       print(
           'Foreground message received: ${message.notification?.title} - ${message.notification?.body}');

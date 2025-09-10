@@ -46,9 +46,8 @@ def send_order_notification(user, title, body, exclude_token=None):
     )
     response = messaging.send_each_for_multicast(message)
 
-    # Xử lý token lỗi
     for i, resp in enumerate(response.responses):
-        if i >= len(tokens):  # đảm bảo i không vượt quá tokens
+        if i >= len(tokens): 
             continue
         if not resp.success:
             FcmToken.objects.filter(token=tokens[i]).delete()

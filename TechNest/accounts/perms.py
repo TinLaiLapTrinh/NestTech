@@ -39,5 +39,5 @@ class IsFollower(permissions.IsAuthenticated):
     Chỉ cho phép người dùng là follower của bản ghi Follow được xóa.
     """
     def has_object_permission(self, request, view, obj):
-        # Kiểm tra nếu người dùng hiện tại là follower
+        
         return obj.follower == request.user

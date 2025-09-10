@@ -49,6 +49,25 @@ class ProductService {
     }
   }
 
+  static Future<List<ProductModel>> getMyProductDeteted() async {
+    final headers = await ApiHeaders.getAuthHeaders();
+    final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.productsDeleted);
+    final response = await http.get(url, headers: headers);
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+
+      List<ProductModel> products = (data['results'] as List)
+          .map((item) => ProductModel.fromJson(item))
+          .toList();
+
+      return products;
+    } else {
+      throw Exception('Failed to load my products');
+    }
+  }
+
+
   static Future<List<Map<String, dynamic>>> generateVariants(int id) async {
     final headers = await ApiHeaders.getAuthHeaders();
     final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.addProductVariant(id));

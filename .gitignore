@@ -49,6 +49,9 @@ TechNest/*.py.cover
 TechNest/.hypothesis/
 TechNest/.pytest_cache/
 TechNest/cover/
+# Data / Cache / Model
+cache/
+TechNest/transformer_model/
 
 # Environments
 TechNest/.env

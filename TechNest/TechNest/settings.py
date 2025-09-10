@@ -36,7 +36,8 @@ ALLOWED_HOSTS = [
      "10.133.216.48",
      "10.189.114.102",
      "10.189.114.149",
-     "88d36a353e4c.ngrok-free.app"
+     "e75a1d429c36.ngrok-free.app",
+     "192.168.73.13"
 ]
 
 
@@ -145,7 +146,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
      
-INTERNAL_IPS = [ "192.168.1.3","127.0.0.1","10.133.216.48","10.189.114.102","10.189.114.149"]
+INTERNAL_IPS = [ "192.168.1.3","127.0.0.1","10.133.216.48","10.189.114.102","10.189.114.149","192.168.73.13"]
 
 
 
@@ -216,9 +217,12 @@ VNPAY_TMN_CODE = os.getenv("VNPAY_TMN_CODE")
 VNPAY_HASH_SECRET_KEY = os.getenv("VNPAY_HASH_SECRET_KEY")
 VNPAY_PAYMENT_URL = os.getenv("VNPAY_PAYMENT_URL")
 VNPAY_RETURN_URL = os.getenv("VNPAY_RETURN_URL")
-
+AKISMET_API_KEY = os.getenv("AKISMET_API_KEY_DEV")
+BLOG_URL = os.getenv("BLOG_URL_DEV")
 CLIENT_ID = os.getenv("OATUH2_CLIENT_ID")
 CLIENT_SECRET = os.getenv("OATUH2_CLIENT_SECRET")
+CELERY_BROKER_URL = "redis://localhost:6379/0"
+CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
 UNFOLD = {
     "SITE_TITLE": "TechNest Admin",
     "SITE_HEADER": "TechNest",

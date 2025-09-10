@@ -60,7 +60,7 @@ class _MyProductDetailScreenState extends State<MyProductDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Ảnh chính
+            
             if (p.images.isNotEmpty)
               SizedBox(
                 height: 200,
@@ -89,7 +89,7 @@ class _MyProductDetailScreenState extends State<MyProductDetailScreen> {
             Text("Trạng thái: ${p.status}"),
             const Divider(),
 
-            // Giá
+
             Text(
               "Giá: ${p.priceRange.min} - ${p.priceRange.max} đ",
               style: const TextStyle(

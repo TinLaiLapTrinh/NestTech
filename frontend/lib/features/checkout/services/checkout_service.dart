@@ -106,17 +106,24 @@ class CheckoutService {
     uri,
     headers: header,
     body: jsonEncode({"rate": rate, "content": content}),
-  
   );
-  
 
-  if (response.statusCode == 201 || response.statusCode == 200) { // 201 hợp lý
+  if (response.statusCode == 201 || response.statusCode == 200) {
     final data = json.decode(response.body);
     return Rate.fromJson(data['rate']);
   } else {
-    throw Exception('Failed to rate order: ${response.statusCode}');
+    // Lấy message từ response body
+    String msg = "Gửi đánh giá thất bại";
+    try {
+      final data = json.decode(response.body);
+      if (data['message'] != null) {
+        msg = data['message'];
+      }
+    } catch (_) {}
+    throw Exception(msg);
   }
 }
+
 
 
   static Future<Map<String, dynamic>> orderDetail(int id) async {

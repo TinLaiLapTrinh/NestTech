@@ -13,7 +13,9 @@ class MyProductListScreen extends StatefulWidget {
 
 class _MyProductListScreenState extends State<MyProductListScreen> {
   List<ProductModel> _myProducts = [];
+  List<ProductModel> _deletedProducts = [];
   bool _isLoading = true;
+  bool _showDeleted = false; // Toggle danh sách sản phẩm đã xoá
 
   @override
   void initState() {
@@ -22,26 +24,61 @@ class _MyProductListScreenState extends State<MyProductListScreen> {
   }
 
   Future<void> _loadProducts() async {
-    final data = await ProductService.getMyProduct();
-    setState(() {
-      _myProducts = data;
-      _isLoading = false;
-    });
+    setState(() => _isLoading = true);
+    try {
+      final data = await ProductService.getMyProduct();
+      final deletedData = await ProductService.getMyProductDeteted();
+      setState(() {
+        _myProducts = data;
+        _deletedProducts = deletedData;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      debugPrint("Lỗi tải sản phẩm: $e");
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final displayList = _showDeleted ? _deletedProducts : _myProducts;
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Quản lý sản phẩm")),
+      appBar: AppBar(
+        title: Text(_showDeleted ? "Sản phẩm đã xoá" : "Quản lý sản phẩm"),
+        actions: [
+          TextButton.icon(
+            onPressed: () {
+              setState(() {
+                _showDeleted = !_showDeleted; // Toggle danh sách
+              });
+            },
+            icon: Icon(
+              _showDeleted ? Icons.list : Icons.delete_outline,
+              color: Colors.white,
+            ),
+            label: Text(
+              _showDeleted ? "Đang bán" : "Đã xoá",
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _myProducts.isEmpty
-          ? const Center(child: Text("Bạn chưa có sản phẩm nào"))
+          : displayList.isEmpty
+          ? Center(
+              child: Text(
+                _showDeleted
+                    ? "Chưa có sản phẩm nào bị xoá"
+                    : "Bạn chưa có sản phẩm nào",
+              ),
+            )
           : ListView.builder(
               padding: const EdgeInsets.all(12),
-              itemCount: _myProducts.length,
+              itemCount: displayList.length,
               itemBuilder: (context, index) {
-                final p = _myProducts[index];
+                final p = displayList[index];
                 final firstImage = p.images.isNotEmpty
                     ? p.images[0].image
                     : null;
@@ -141,64 +178,65 @@ class _MyProductListScreenState extends State<MyProductListScreen> {
                         ),
 
                         // Nút thao tác
-                        // Thay phần nút thao tác
-                        Column(
-                          children: [
-                            // Nút Edit - chuyển sang màn UpdateProductScreen
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        MyProductDetailScreen(productId: p.id),
-                                  ),
-                                ).then((value) {
-                                  // Sau khi update xong quay lại thì reload danh sách
-                                  _loadProducts();
-                                });
-                              },
-                            ),
-
-                            // Nút Delete - confirm trước khi xóa
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text("Xóa sản phẩm"),
-                                    content: Text(
-                                      "Bạn có chắc chắn muốn xóa '${p.name}' không?",
+                        if (!_showDeleted)
+                          Column(
+                            children: [
+                              // Nút Edit
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.edit,
+                                  color: Colors.blue,
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => MyProductDetailScreen(
+                                        productId: p.id,
+                                      ),
                                     ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(context, false),
-                                        child: const Text("Hủy"),
+                                  ).then((value) => _loadProducts());
+                                },
+                              ),
+                              // Nút Delete
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () async {
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text("Xóa sản phẩm"),
+                                      content: Text(
+                                        "Bạn có chắc chắn muốn xóa '${p.name}' không?",
                                       ),
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(context, true),
-                                        child: const Text(
-                                          "Xóa",
-                                          style: TextStyle(color: Colors.red),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, false),
+                                          child: const Text("Hủy"),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-
-                                if (confirm == true) {
-                                  // Gọi service xóa sản phẩm
-                                  await ProductService.deleteProduct(p.id);
-                                  _loadProducts(); // Reload lại danh sách
-                                }
-                              },
-                            ),
-                          ],
-                        ),
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, true),
+                                          child: const Text(
+                                            "Xóa",
+                                            style: TextStyle(color: Colors.red),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirm == true) {
+                                    await ProductService.deleteProduct(p.id);
+                                    _loadProducts();
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
                       ],
                     ),
                   ),
