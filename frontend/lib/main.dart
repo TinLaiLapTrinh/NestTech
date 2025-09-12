@@ -15,6 +15,7 @@ Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
   // Hiển thị notification cho background/data-only messages
   RemoteNotification? notification = message.notification;
   AndroidNotification? android = message.notification?.android;
+  
 
   if (notification != null && android != null) {
     flutterLocalNotificationsPlugin.show(
@@ -63,7 +64,7 @@ void main() async {
   const InitializationSettings initializationSettings =
       InitializationSettings(android: initializationSettingsAndroid);
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
-
+  
   // Bắt background messages
   FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundHandler);
 

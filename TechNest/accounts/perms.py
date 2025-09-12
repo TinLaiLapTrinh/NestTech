@@ -41,3 +41,10 @@ class IsFollower(permissions.IsAuthenticated):
     def has_object_permission(self, request, view, obj):
         
         return obj.follower == request.user
+    
+class IsSupplierOrDeliveryPerson(permissions.BasePermission):
+    message = "Chỉ SUPPLIER hoặc DELIVERY_PERSON mới được phép truy cập!"
+
+    def has_permission(self, request, view):
+        user = request.user
+        return user.is_authenticated and user.user_type in [UserType.SUPPLIER, UserType.DELIVER_PERSON]

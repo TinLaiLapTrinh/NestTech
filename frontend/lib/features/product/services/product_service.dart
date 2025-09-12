@@ -1,8 +1,10 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:frontend/features/product/models/product_detail_model.dart';
 import 'package:frontend/features/product/models/product_model.dart';
 import 'package:frontend/features/product/models/product_option_model.dart';
+import 'package:frontend/features/product/models/product_register_model.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../core/configs/api_config.dart';
@@ -67,7 +69,6 @@ class ProductService {
     }
   }
 
-
   static Future<List<Map<String, dynamic>>> generateVariants(int id) async {
     final headers = await ApiHeaders.getAuthHeaders();
     final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.addProductVariant(id));
@@ -84,7 +85,7 @@ class ProductService {
   static Future<List<ProductVariant>> getVariants(int id) async {
     final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.productVariants(id));
     final response = await http.get(url);
-    
+
     if (response.statusCode == 200) {
       final data = json.decode(response.body) as List;
       return data.map((e) => ProductVariant.fromJson(e)).toList();
@@ -93,16 +94,22 @@ class ProductService {
     }
   }
 
-  static Future<dynamic> updateVariant(int id,int variantId, int stock, int price) async{
+  static Future<dynamic> updateVariant(
+    int id,
+    int variantId,
+    int stock,
+    int price,
+  ) async {
     final header = await ApiHeaders.getAuthHeaders();
-     final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.productVariantUpdate(id, variantId));
+    final uri = Uri.parse(
+      ApiConfig.baseUrl + ApiConfig.productVariantUpdate(id, variantId),
+    );
     final response = await http.put(
       uri,
       headers: header,
-      body: jsonEncode({"price": price,
-      "stock":stock}),
+      body: jsonEncode({"price": price, "stock": stock}),
     );
-    
+
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       return data;
@@ -182,17 +189,37 @@ class ProductService {
   }
 
   static Future<List<Rate>> getRate(int id) async {
-  final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.getRate(id));
-  final response = await http.get(uri);
+    final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.getRate(id));
+    final response = await http.get(uri);
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final data = json.decode(response.body);
+      return (data['results'] as List)
+          .map((item) => Rate.fromJson(item))
+          .toList();
+    } else {
+      throw Exception("Failed: ${response.statusCode} - ${response.body}");
+    }
+  }
+
+ static Future<bool> registerSupplier(ProductRegisterModel request) async {
+  final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.addNewProduct);
+
+  final multipartRequest = await request.toMultipartRequest(url);
+
+  final header = await ApiHeaders.getAuthHeaders(); // sửa ở đây
+  multipartRequest.headers.addAll(header);
+
+  final streamedResponse = await multipartRequest.send();
+  final response = await http.Response.fromStream(streamedResponse);
 
   if (response.statusCode == 200 || response.statusCode == 201) {
-    final data = json.decode(response.body);
-    return (data['results'] as List)
-        .map((item) => Rate.fromJson(item))
-        .toList();
+    return true;
   } else {
-    throw Exception("Failed: ${response.statusCode} - ${response.body}");
+    debugPrint("Đăng ký sản phẩm thất bại: ${response.body}");
+    return false;
   }
 }
+
 
 }

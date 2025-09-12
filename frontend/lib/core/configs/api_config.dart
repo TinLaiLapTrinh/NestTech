@@ -1,5 +1,5 @@
 class ApiConfig {
-  static const String baseUrl = "http://192.168.73.13:8000";
+  static const String baseUrl = "http://192.168.1.3:8000";
 
   // Auth
   static const String tokenEndpoint = "/o/token/";
@@ -7,6 +7,7 @@ class ApiConfig {
   // Product
   static const String productList = "/products/";
   static const String categoryList = "/category/";
+  static const String addNewProduct = "/products/";
   static const String myProductList = "/products/my-product/";
   static String productDetail(int id) => "/products/$id/";
   static String productDelete(int id) => "/products/$id/";
@@ -45,8 +46,10 @@ class ApiConfig {
   static String deleteOrderDetailItem(int id, int idItem) => "/order/$id/delete-order-detail/$idItem/";
   static String orderDetail = "/order-detail/";
   static String orderDetailUpdate(int id) =>"/order-detail/$id/";
+  static String orderDetailRetrieve(int id) =>"/order-detail/$id/";
   static String confirmOrderDetail(int id)=>"/order-detail/$id/delivered/";
   static String ratingProduct(int id)=>"/order-detail/$id/rate-product/";
+  static String orderCheckout = "/payments/return/";
 
   // cart
   static String shoppingCart = "/shoppingcart/";
@@ -54,6 +57,10 @@ class ApiConfig {
   static String shoppingCartDeteteItem(int idItem)=>"/shoppingcart/delete-item/$idItem/";
   static String shoppingCartItems = "/shoppingcart/items/";
   static String shoppingCartUpdateItem(int idItem) => "/shoppingcart/update-item/$idItem/"; 
+
+
+  // stats
+  static String dashboardStats = "/stats/";
 
 
 

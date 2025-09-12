@@ -36,9 +36,12 @@ ALLOWED_HOSTS = [
      "10.133.216.48",
      "10.189.114.102",
      "10.189.114.149",
-     "e75a1d429c36.ngrok-free.app",
+     "a5b3c0371cc8.ngrok-free.app",
      "192.168.73.13"
 ]
+
+USE_TZ = False
+TIME_ZONE = "Asia/Ho_Chi_Minh"
 
 
 # Application definition
@@ -155,11 +158,9 @@ INTERNAL_IPS = [ "192.168.1.3","127.0.0.1","10.133.216.48","10.189.114.102","10.
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
-USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
@@ -213,10 +214,16 @@ OAUTH2_PROVIDER = {
     "GRANT_TYPES": ["password", "refresh_token", "authorization_code"],
 }
 
-VNPAY_TMN_CODE = os.getenv("VNPAY_TMN_CODE")
-VNPAY_HASH_SECRET_KEY = os.getenv("VNPAY_HASH_SECRET_KEY")
-VNPAY_PAYMENT_URL = os.getenv("VNPAY_PAYMENT_URL")
-VNPAY_RETURN_URL = os.getenv("VNPAY_RETURN_URL")
+MOMO_CONFIG = {
+    "endpoint": "https://test-payment.momo.vn/v2/gateway/api/create",
+    "accessKey": "F8BBA842ECF85",
+    "secretKey": "K951B6PE1waDMi640xX08PD3vg6EkVlz",
+    "partnerCode": "MOMO",
+    "redirectUrl": "http://127.0.0.1:8000/payments/return/",   
+    "ipnUrl": "https://a5b3c0371cc8.ngrok-free.app/payments/ipn/",          
+}
+
+
 AKISMET_API_KEY = os.getenv("AKISMET_API_KEY_DEV")
 BLOG_URL = os.getenv("BLOG_URL_DEV")
 CLIENT_ID = os.getenv("OATUH2_CLIENT_ID")

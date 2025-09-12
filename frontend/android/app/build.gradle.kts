@@ -1,8 +1,8 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    id("dev.flutter.flutter-gradle-plugin") // flutter plugin luôn đặt cuối
-    id("com.google.gms.google-services")    
+    id("com.google.gms.google-services") 
+    id("dev.flutter.flutter-gradle-plugin") // flutter plugin luôn đặt cuối   
 }
 
 android {
@@ -26,7 +26,7 @@ android {
         targetSdk = 35 
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        minSdk = 21 
+        minSdk = 23 
         multiDexEnabled = true
     }
 
@@ -46,7 +46,8 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
     implementation("com.google.firebase:firebase-messaging")
     implementation("com.google.firebase:firebase-analytics")
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
 
 // 🔥 plugin google-services phải để cuối cùng

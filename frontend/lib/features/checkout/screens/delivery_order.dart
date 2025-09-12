@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:frontend/features/checkout/screens/confirm_img_order_delivery.dart';
+import 'package:frontend/features/checkout/screens/delivery_detail_order.dart';
 import 'package:frontend/features/checkout/services/checkout_service.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -50,7 +52,6 @@ class _DeliveryOrderScreenState extends State<DeliveryOrderScreen> {
 
   Future<void> _loadOrders({bool initial = false}) async {
     if (_isLoading) return;
-
     setState(() => _isLoading = true);
 
     if (initial) {
@@ -90,7 +91,9 @@ class _DeliveryOrderScreenState extends State<DeliveryOrderScreen> {
       if (picked == null) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Bạn phải chọn ảnh để xác nhận giao hàng")),
+          const SnackBar(
+            content: Text("Bạn phải chọn ảnh để xác nhận giao hàng"),
+          ),
         );
         return;
       }
@@ -103,7 +106,10 @@ class _DeliveryOrderScreenState extends State<DeliveryOrderScreen> {
       );
 
       if (uploadRes['success'] == true) {
-        final res = await CheckoutService.orderRequestUpdate(orderId, newStatus);
+        final res = await CheckoutService.orderRequestUpdate(
+          orderId,
+          newStatus,
+        );
 
         if (res['success'] == true) {
           if (!mounted) return;
@@ -119,9 +125,9 @@ class _DeliveryOrderScreenState extends State<DeliveryOrderScreen> {
         }
       } else {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Upload ảnh thất bại")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Upload ảnh thất bại")));
       }
 
       if (mounted) setState(() => _isLoading = false);
@@ -138,6 +144,21 @@ class _DeliveryOrderScreenState extends State<DeliveryOrderScreen> {
       _selectedStatus = status;
     });
     _loadOrders(initial: true);
+  }
+
+  Color statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'shipped':
+        return Colors.green;
+      case 'delivered':
+        return Colors.blue;
+      case 'returned_to_sender':
+        return Colors.purple;
+      case 'refunded':
+        return Colors.grey;
+      default:
+        return Colors.black;
+    }
   }
 
   @override
@@ -172,7 +193,6 @@ class _DeliveryOrderScreenState extends State<DeliveryOrderScreen> {
             ),
           ),
 
-          // List orders
           Expanded(
             child: _orders.isEmpty && !_isLoading
                 ? const Center(child: Text("Không có đơn hàng"))
@@ -191,65 +211,163 @@ class _DeliveryOrderScreenState extends State<DeliveryOrderScreen> {
                       final product = order['product']['product'];
                       final optionValues =
                           order['product']['option_values'] as List;
+                      final routeInfo = order['route_info'];
+                      final from = routeInfo?['from'] ?? {};
+                      final to = routeInfo?['to'] ?? {};
 
                       return Card(
                         margin: const EdgeInsets.all(8),
-                        child: ListTile(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    DeliveryOrderDetailScreen(order: order),
-                              ),
-                            );
-                          },
-                          leading: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              product['image'],
-                              width: 60,
-                              height: 60,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          title: Text(
-                            product['name'],
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          subtitle: Column(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      product['image'],
+                                      width: 60,
+                                      height: 60,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      product['name'],
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.map),
+                                    color: Colors.blue,
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => DeliveryDetailScreen(
+                                            orderId: order['id'],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
                               Wrap(
                                 children: optionValues.map((opt) {
                                   return Padding(
                                     padding: const EdgeInsets.only(right: 6.0),
                                     child: Chip(
                                       label: Text(
-                                          "${opt['option']['type']}: ${opt['value']}"),
+                                        "${opt['option']['type']}: ${opt['value']}",
+                                      ),
                                       visualDensity: VisualDensity.compact,
                                     ),
                                   );
                                 }).toList(),
                               ),
+                              const SizedBox(height: 4),
                               Text("Số lượng: ${order['quantity']}"),
                               Text("Giá: ${order['price']}"),
                               Text("Phí ship: ${order['delivery_charge']}"),
-                              Text("Trạng thái: ${order['delivery_status']}"),
+                              const SizedBox(height: 4),
+                              // Status
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: statusColor(
+                                    order['delivery_status'],
+                                  ).withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  order['delivery_status']?.toUpperCase() ?? '',
+                                  style: TextStyle(
+                                    color: statusColor(
+                                      order['delivery_status'],
+                                    ),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              // Dropdown cập nhật trạng thái
                               DropdownButton<String>(
                                 hint: const Text("Cập nhật trạng thái"),
+                                value: null,
                                 items: allowedUpdateStatuses.map((status) {
                                   return DropdownMenuItem(
                                     value: status,
                                     child: Text(status),
                                   );
                                 }).toList(),
-                                onChanged: (status) {
-                                  if (status != null) {
-                                    _onStatusChanged(order['id'], status);
-                                  }
-                                },
+                                onChanged:
+                                    order['delivery_status'] == 'delivered'
+                                    ? null
+                                    : (status) async {
+                                        if (status == null) return;
+
+                                        if (status == "delivered") {
+                                          final result = await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  ConfirmDeliveryScreen(
+                                                    orderDetailId: order['id'],
+                                                  ),
+                                            ),
+                                          );
+
+                                          if (result == true) {
+                                            _loadOrders(initial: true);
+                                          }
+                                        } else {
+                                          setState(() => _isLoading = true);
+                                          try {
+                                            await CheckoutService.orderRequestUpdate(
+                                              order['id'],
+                                              status,
+                                            );
+                                            _loadOrders(initial: true);
+                                          } catch (e) {
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    "Lỗi khi cập nhật trạng thái",
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          } finally {
+                                            if (mounted)
+                                              setState(
+                                                () => _isLoading = false,
+                                              );
+                                          }
+                                        }
+                                      },
+                                disabledHint: const Text(
+                                  "Đơn hàng đã giao, không thể cập nhật",
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -259,92 +377,6 @@ class _DeliveryOrderScreenState extends State<DeliveryOrderScreen> {
                   ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// Chi tiết đơn hàng
-class DeliveryOrderDetailScreen extends StatelessWidget {
-  final dynamic order;
-  const DeliveryOrderDetailScreen({super.key, required this.order});
-
-  @override
-  Widget build(BuildContext context) {
-    final orderDetails = order['order_details'] as List? ?? [];
-
-    return Scaffold(
-      appBar: AppBar(title: const Text("Chi tiết đơn hàng")),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Địa chỉ: ${order['address'] ?? 'Không có'}"),
-            Text("SĐT: ${order['receiver_phone_number'] ?? 'Không có'}"),
-            Text("Tổng tiền: ${order['total'] ?? '0'}"),
-            const SizedBox(height: 12),
-            const Text(
-              "Sản phẩm:",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            ...orderDetails.map((item) {
-              final product = item["product"];
-              final productInfo = product?["product"];
-              final optionValues = product?["option_values"] as List? ?? [];
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          if (productInfo?["image"] != null)
-                            Image.network(
-                              productInfo["image"],
-                              width: 60,
-                              height: 60,
-                              fit: BoxFit.cover,
-                            ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              productInfo?["name"] ?? "Không có tên",
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          )
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      if (optionValues.isNotEmpty)
-                        Wrap(
-                          spacing: 8,
-                          children: optionValues.map((opt) {
-                            return Chip(
-                              label: Text(
-                                "${opt["option"]?["type"] ?? ""}: ${opt["value"] ?? ""}",
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      const SizedBox(height: 8),
-                      Text("Số lượng: ${item["quantity"] ?? 0}"),
-                      Text("Giá: ${item["price"] ?? 0}"),
-                      Text("Phí vận chuyển: ${item["delivery_charge"] ?? 0}"),
-                      Text("Trạng thái: ${item["delivery_status"] ?? "pending"}"),
-                    ],
-                  ),
-                ),
-              );
-            })
-          ],
-        ),
       ),
     );
   }

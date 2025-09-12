@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <application
         android:label="frontend"
         android:name="${applicationName}"
@@ -14,6 +16,11 @@
                 android:name="com.google.android.geo.API_KEY"
                 android:value="AIzaSyC26hJWQ6t7Y-YLJkcGCdC4uS2f4R9868Y"
                 />
+
+         <meta-data
+        android:name="com.mapbox.token"
+        android:value="pk.eyJ1IjoidHJvbmd0aW4xMjkyMDA0IiwiYSI6ImNtZXZsMnhnbzBlbmUyaW9kcjhsb2k2cXAifQ.EmlCJ9BsD-p2C5nr_dlOYA" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -28,8 +35,8 @@
                  while the Flutter UI initializes. After that, this theme continues
                  to determine the Window background behind the Flutter UI. -->
             <meta-data
-              android:name="io.flutter.embedding.android.NormalTheme"
-              android:resource="@style/NormalTheme"
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme"
               />
               
             <intent-filter>

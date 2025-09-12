@@ -10,9 +10,11 @@ from rest_framework.permissions import IsAuthenticated,AllowAny
 from django.views.decorators.csrf import csrf_exempt
 from utils.tasks import check_spam_rate
 from utils.checker import check_spam
+from .service.statistics import stats_for_supplier, stats_for_shipper  
+from .spam_checker.spam_checker import check_spam 
 
 from django.http import HttpResponse
-from accounts.perms  import IsCustomer, IsSupplier, IsDeliveryPerson
+from accounts.perms  import IsCustomer, IsSupplier, IsDeliveryPerson, IsSupplierOrDeliveryPerson
 from utils.choice import UserType
 from checkout.perms import IsShoppingCartOwner, IsOrderDetailOwner, IsOrderOwner,IsDeliveryPersonOrder, IsOrderRequest
 from .models import ShoppingCart, ShoppingCartItem, Order, OrderDetail
@@ -22,7 +24,6 @@ from .serializers import (ShoppingCartItemSerializer, ShoppingCartListItemSerial
                              OrderRequestSerializer, OrderDetailConfirmImageSerializer,
                              RateSerializer)
 from utils.choice import DeliveryStatus
-from utils.vnpay import VNPay
 import requests
 from time import time
 from datetime import datetime
@@ -40,6 +41,7 @@ from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.conf import settings
 from .models import Order, PaymentStatus, PaymentMethod
+from utils.momo_service import create_momo_payment, generate_qr_from_url
 
 
 AKISMET_API_KEY = "68405bed0dbc"
@@ -165,7 +167,7 @@ class OrderDetailViewSet(viewsets.GenericViewSet,mixins.RetrieveModelMixin, mixi
         return [AllowAny()]
     
     def get_serializer_class(self):
-        if self.action in ['update','partial_update','list']:
+        if self.action in ['update','partial_update','list','retrieve']:
             return OrderDetailSerializer    
         if self.action == 'upload_confirm_img':
             return OrderDetailConfirmImageSerializer 
@@ -236,6 +238,8 @@ class OrderDetailViewSet(viewsets.GenericViewSet,mixins.RetrieveModelMixin, mixi
             },
             status=status.HTTP_201_CREATED
         )
+    
+
     @action(detail=True, methods=['post'], url_path='rate-product')
     def rate_product(self, request, pk=None):
         order_detail = self.get_object()
@@ -256,10 +260,22 @@ class OrderDetailViewSet(viewsets.GenericViewSet,mixins.RetrieveModelMixin, mixi
             ip_address=request.META.get('REMOTE_ADDR')
         )
 
-        is_spam = check_spam_with_akismet(rate)
-        rate.is_spam = is_spam
-        rate.save(update_fields=["is_spam"])
-        rate.save()
+        try:
+            results = check_spam([rate.content])   # lấy nội dung đánh giá để check
+            task1_label = results[rate.content]["task1"]
+            task2_label = results[rate.content]["task2"]
+
+
+            is_spam = (task1_label == "spam") or (task2_label.startswith("spam"))
+            rate.is_spam = is_spam
+            print(f"Đánh giá rating là:{is_spam}")
+            rate.save(update_fields=["is_spam"])
+        except Exception as e:
+            # Nếu có lỗi khi check spam, mặc định không đánh dấu spam
+            print("Spam checker error:", str(e))
+            rate.is_spam = False
+            rate.save(update_fields=["is_spam"])
+        # ================================================
 
         return Response(
             {
@@ -294,27 +310,59 @@ class OrderViewSet(viewsets.GenericViewSet,
     def get_permissions(self):
         if self.action == 'create':
             return [IsCustomer()]
-        if self.action == 'cancel_detail_order':
+        if self.action in ["cancel_detail_order", "get_payment_status"]:
             return [IsOrderOwner()]
         return [AllowAny()]
 
     def perform_create(self, serializer):
-        """Hook để gắn owner cho order"""
-        serializer.save(owner=self.request.user)
+
+        return serializer.save(owner=self.request.user)
 
     def create(self, request, *args, **kwargs):
-        print(self.request.data)
-        """Custom response JSON"""
         serializer = self.get_serializer(
             data=request.data,
-            context={'owner': request.user}  
-            )
+            context={'owner': request.user}
+        )
         serializer.is_valid(raise_exception=True)
         order = self.perform_create(serializer)
+
+
+        momo_response = create_momo_payment(
+            amount=str(int(order.total)),
+            order_id=order.id,  # truyền order.id thôi, hàm tự sinh unique
+            order_info=f"Thanh toán đơn hàng {order.id}"
+        )
+        
+
+        if momo_response.get("resultCode") == 0:
+            pay_url = momo_response.get("payUrl")
+            qr_code_base64 = generate_qr_from_url(pay_url)
+
+        else:
+            pay_url = None
+
         return Response(
-            {"message": "order created successfully!", "order_id": serializer.instance.id},
+            {
+                "message": "Order created successfully!",
+                "order_id": order.id,
+                "payUrl": pay_url,
+                "qrCodeImage":qr_code_base64,
+                "momo_response": momo_response 
+            },
             status=status.HTTP_201_CREATED
         )
+    
+    @action(detail=True, methods=['get'], url_path='payment-status')
+    def get_payment_status(self,request,pk=None):
+        order = self.get_object()
+        return Response(
+            {
+                "payment_status":order.payment_status
+            },
+            status=status.HTTP_200_OK
+        )
+    
+
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
@@ -340,63 +388,54 @@ class OrderViewSet(viewsets.GenericViewSet,
                         'status': detail.status},
                         status=status.HTTP_200_OK)
     
-    @action(detail=True, methods=["post"], url_path="pay-vnpay")
-    def pay_vnpay(self, request, pk=None):
-        """
-        Tạo link thanh toán VNPAY cho order có id=pk
-        """
-        order = self.get_object()
-        vnp = VNPay()
-
-        vnp.requestData['vnp_Version'] = '2.1.0'
-        vnp.requestData['vnp_Command'] = 'pay'
-        vnp.requestData['vnp_TmnCode'] = settings.VNPAY_TMN_CODE
-        vnp.requestData['vnp_Amount'] = int(order.total) * 100
-        vnp.requestData['vnp_CurrCode'] = 'VND'
-        vnp.requestData['vnp_TxnRef'] = str(order.id)
-        vnp.requestData['vnp_OrderInfo'] = f"Thanh toán đơn hàng #{order.id}"
-        vnp.requestData['vnp_OrderType'] = 'other'
-        vnp.requestData['vnp_Locale'] = 'vn'
-        vnp.requestData['vnp_CreateDate'] = datetime.now().strftime('%Y%m%d%H%M%S')
-        vnp.requestData['vnp_IpAddr'] = request.META.get('REMOTE_ADDR', '127.0.0.1')
-        vnp.requestData['vnp_ReturnUrl'] = settings.VNPAY_RETURN_URL  # URL gọi lại đây
-
-        payment_url = vnp.get_payment_url(settings.VNPAY_PAYMENT_URL, settings.VNPAY_HASH_SECRET_KEY)
-
-
-        order.payment_method = "vnpay"
-        order.payment_status = "pending"
-        order.save(update_fields=['payment_method', 'payment_status'])
-
-        return Response({"pay_url": payment_url}, status=200)
-
-@csrf_exempt
-@api_view(['GET'])
-def vnpay_return(request):
-    """
-    Callback VNPAY: cập nhật trạng thái thanh toán dựa trên vnp_TxnRef
-    """
-    
-    print(f"data trả về: {request.GET.dict()}")
-    inputData = request.GET.dict()
-    vnp = VNPay()
-    vnp.responseData = inputData
-
-    order_id = inputData.get('vnp_TxnRef')
-    if not order_id:
-        return Response({'message': 'missing order id'}, status=400)
+@api_view(['POST'])
+def momo_ipn(request):
+    data = request.data
+    order_id = data.get("orderId")  # ví dụ: "78_1757513847"
+    result_code = data.get("resultCode")
 
     try:
-        order = Order.objects.get(id=order_id)
+        real_order_id = order_id.split("_")[0]  # lấy id gốc từ orderId
+        order = Order.objects.get(id=real_order_id)
     except Order.DoesNotExist:
-        return Response({'message': 'Order no exist'}, status=404)
-    raw_query_string = request.META['QUERY_STRING']
+        return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    response_code = inputData.get('vnp_ResponseCode')
-    order.payment_status = "paid" if response_code == "00" else "failed"
-    order.save(update_fields=['payment_status'])
-    return Response({
-        'message': 'Success',
-        'order_id': order.id,
-        'payment_status': order.payment_status
-    })
+    if result_code == 0:  # thanh toán thành công
+        order.payment_status = PaymentStatus.PAID
+        order.save()
+    else:
+        order.payment_status = PaymentStatus.FAILED
+        order.save()
+
+    return Response({"message": "IPN received"}, status=status.HTTP_200_OK)
+
+@csrf_exempt
+def momo_return(request):
+    result_code = request.GET.get("resultCode")
+    order_id = request.GET.get("orderId")
+    message = request.GET.get("message")
+
+
+    if result_code == "0":
+        return HttpResponse(f"Thanh toán đơn hàng {order_id} thành công!")
+    else:
+        return HttpResponse(f"Thanh toán thất bại: {message}")
+    
+
+class DashboardStatsView(APIView):
+    permission_classes = [IsSupplierOrDeliveryPerson]
+
+    def get(self, request):
+        user = request.user
+
+        if user.user_type == UserType.SUPPLIER:
+            data = stats_for_supplier(user)
+        elif user.user_type == UserType.DELIVER_PERSON:
+            data = stats_for_shipper(user)
+        else:
+            return Response(
+                {"detail": "Chỉ SUPPLIER hoặc DELIVER_PERSON mới được phép."},
+                status=403
+            )
+
+        return Response(data)

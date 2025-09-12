@@ -5,7 +5,6 @@ import 'package:frontend/core/configs/api_config.dart';
 import 'package:frontend/core/configs/headers.dart';
 import 'package:frontend/features/product/models/product_detail_model.dart';
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
 
 class CheckoutService {
   static Future<dynamic> getCartItems() async {
@@ -100,31 +99,29 @@ class CheckoutService {
   }
 
   static Future<Rate> ratingProduct(int id, double rate, String content) async {
-  final header = await ApiHeaders.getAuthHeaders();
-  final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.ratingProduct(id));
-  final response = await http.post(
-    uri,
-    headers: header,
-    body: jsonEncode({"rate": rate, "content": content}),
-  );
+    final header = await ApiHeaders.getAuthHeaders();
+    final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.ratingProduct(id));
+    final response = await http.post(
+      uri,
+      headers: header,
+      body: jsonEncode({"rate": rate, "content": content}),
+    );
 
-  if (response.statusCode == 201 || response.statusCode == 200) {
-    final data = json.decode(response.body);
-    return Rate.fromJson(data['rate']);
-  } else {
-    // Lấy message từ response body
-    String msg = "Gửi đánh giá thất bại";
-    try {
+    if (response.statusCode == 201 || response.statusCode == 200) {
       final data = json.decode(response.body);
-      if (data['message'] != null) {
-        msg = data['message'];
-      }
-    } catch (_) {}
-    throw Exception(msg);
+      return Rate.fromJson(data['rate']);
+    } else {
+      // Lấy message từ response body
+      String msg = "Gửi đánh giá thất bại";
+      try {
+        final data = json.decode(response.body);
+        if (data['message'] != null) {
+          msg = data['message'];
+        }
+      } catch (_) {}
+      throw Exception(msg);
+    }
   }
-}
-
-
 
   static Future<Map<String, dynamic>> orderDetail(int id) async {
     final header = await ApiHeaders.getAuthHeaders();
@@ -194,32 +191,59 @@ class CheckoutService {
     }
   }
 
-  static Future<dynamic> orderConfirmImage(int id, File image) async {
+  
+
+  static Future<dynamic> orderDetailRetrieve(int id) async {
     final header = await ApiHeaders.getAuthHeaders();
-    final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.confirmOrderDetail(id));
+    final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.orderDetailUpdate(id));
 
-    var request = http.MultipartRequest('POST', uri);
+    final response = await http.get(uri, headers: header);
 
-    request.headers.addAll(header);
-
-    request.files.add(
-      await http.MultipartFile.fromPath(
-        'image',
-        image.path,
-        contentType: MediaType('image', 'jpeg'),
-      ),
-    );
-
-    var streamedResponse = await request.send();
-
-    var response = await http.Response.fromStream(streamedResponse);
-
-    if (response.statusCode == 201) {
-      return response.body; // hoặc jsonDecode(response.body)
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return data as Map<String, dynamic>;
     } else {
       throw Exception(
-        "Upload failed: ${response.statusCode} - ${response.body}",
+        'Failed to load retrieve request order: ${response.statusCode}',
       );
+    }
+  }
+
+  static Future<dynamic> orderConfirmImage(int id, File image) async {
+    final header = await ApiHeaders.getAuthHeaders();
+
+    final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.confirmOrderDetail(id));
+    final request = http.MultipartRequest('POST', uri);
+
+    // add headers
+    request.headers.addAll(header);
+
+    // add image file
+    request.files.add(await http.MultipartFile.fromPath('image', image.path));
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 201) {
+      return json.decode(response.body) as Map<String, dynamic>;
+    } else {
+      throw Exception(
+        'Failed to confirm order image: ${response.statusCode}, ${response.body}',
+      );
+    }
+  }
+
+  static Future<String> checkPaymentStatus(int orderId) async {
+    final headers = await ApiHeaders.getAuthHeaders();
+    final url = Uri.parse('${ApiConfig.baseUrl}/order/$orderId/payment-status/');
+    final response = await http.get(url, headers: headers);
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      print (data);
+      return data['payment_status'];
+    } else {
+      throw Exception('Failed to check payment status');
     }
   }
 }

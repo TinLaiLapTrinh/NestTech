@@ -112,6 +112,11 @@ class OrderDetailSerializer(serializers.ModelSerializer):
         data["product"] = ProductVariantGetSerializer(instance.product).data
 
         order = instance.order
+        data["recieve_info"]= {
+                "customer":order.owner.first_name + " " + order.owner.last_name,
+                "phone": order.receiver_phone_number,
+            }
+       
         customer_address = {
             "province": order.province.name,
             "district": order.district.name,
@@ -188,7 +193,9 @@ class OrderDetailSerializer(serializers.ModelSerializer):
 
 
         allowed_next = self.ALLOWED_TRANSITIONS.get(old_status, [])
-        if new_status != old_status and new_status not in allowed_next:
+        
+
+        if new_status != old_status and new_status not in allowed_next or new_status == old_status:
             raise serializers.ValidationError({
                 "delivery_status": f"Không thể chuyển trạng thái từ '{old_status}' → '{new_status}'"
             })
@@ -235,9 +242,15 @@ class OrderDetailConfirmImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderDetailConfirmImage
         fields = ["id", "image", "order"]
-        extra_kwargs = {
-            "order": {"required": False}
-        }
+        extra_kwargs = {"order": {"required": False}}
+
+    def validate(self, attrs):
+        order = attrs.get("order") or self.context.get("order")
+        if OrderDetailConfirmImage.objects.filter(order=order).exists():
+            raise serializers.ValidationError(
+                "Đơn hàng này đã có ảnh xác nhận, không thể cập nhật thêm."
+            )
+        return super().validate(attrs)
 
     def validate_image(self, value):
         max_size = 10 * 1024 * 1024
@@ -252,10 +265,10 @@ class OrderDetailConfirmImageSerializer(serializers.ModelSerializer):
                 f"File {value.name} không đúng định dạng ảnh"
             )
         return value
-    
 
     def create(self, validated_data):
         return super().create(validated_data)
+
     
 class RateSerializer(serializers.ModelSerializer):
     owner_name = serializers.CharField(source="owner.username", read_only=True)

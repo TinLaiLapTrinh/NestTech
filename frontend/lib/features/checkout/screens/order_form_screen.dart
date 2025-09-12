@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:frontend/core/configs/api_config.dart';
+import 'package:frontend/features/checkout/screens/qr_generate_screen.dart';
 import 'package:frontend/features/checkout/services/checkout_service.dart';
 import 'package:frontend/features/location/models/location_model.dart';
 import 'package:frontend/features/location/screens/location_manager_screen.dart';
@@ -110,63 +111,76 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
     }
   }
 
-  void _submitOrder() async {
-    if (_selectedLocation == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Vui lòng chọn địa chỉ giao hàng")),
-      );
-      return;
-    }
-    if (_receivePhoneNumber.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Vui lòng nhập số điện thoại")),
-      );
-      return;
-    }
-
-    final orderDetails = widget.orderItems.map((item) {
-      return {
-        "product": item["variant"]["id"],
-        "quantity": item["quantity"],
-        "distance": 10.5,
-        "delivery_method": item["delivery_method"],
-      };
-    }).toList();
-
-    final payload = {
-      "province": _selectedLocation!.province.code,
-      "district": _selectedLocation!.district.code,
-      "ward": _selectedLocation!.ward.code,
-      "address": _selectedLocation!.address,
-      "receiver_phone_number": _receivePhoneNumber.text,
-      "latitude": _selectedLocation!.latitude,
-      "longitude": _selectedLocation!.longitude,
-      "order_details": orderDetails,
-    };
-
-    try {
-      final res = await CheckoutService.addOrder(payload);
-
-      // res là Map, không còn statusCode
-      if (res.containsKey("order_id")) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Đặt hàng thành công!")));
-        Navigator.pop(context, true);
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Đặt hàng thất bại: ${res.toString()}")),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Có lỗi xảy ra: $e")));
-    }
+ void _submitOrder() async {
+  if (_selectedLocation == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Vui lòng chọn địa chỉ giao hàng")),
+    );
+    return;
   }
+  if (_receivePhoneNumber.text.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Vui lòng nhập số điện thoại")),
+    );
+    return;
+  }
+
+  final orderDetails = widget.orderItems.map((item) {
+    return {
+      "product": item["variant"]["id"],
+      "quantity": item["quantity"],
+      "distance": 10.5,
+      "delivery_method": item["delivery_method"],
+    };
+  }).toList();
+
+  final payload = {
+    "province": _selectedLocation!.province.code,
+    "district": _selectedLocation!.district.code,
+    "ward": _selectedLocation!.ward.code,
+    "address": _selectedLocation!.address,
+    "receiver_phone_number": _receivePhoneNumber.text,
+    "latitude": _selectedLocation!.latitude,
+    "longitude": _selectedLocation!.longitude,
+    "order_details": orderDetails,
+    "payment_method": "MOMO" // 👈 thêm nếu cần backend phân biệt
+  };
+
+  try {
+    final res = await CheckoutService.addOrder(payload);
+
+    if (res.containsKey("payUrl") && res["payUrl"] != null) {
+      // 👉 Có URL MoMo → mở thanh toán
+      final payUrl = res["payUrl"];
+      if (!mounted) return;
+
+      // Mở WebView / Browser
+      Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (_) => PaymentQrScreen(payUrl: payUrl, orderId:res["order_id"] ,),
+  ),
+);
+    } else if (res.containsKey("order_id")) {
+      // 👉 Đơn hàng COD hoặc không cần MoMo
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Đặt hàng thành công!")),
+      );
+      Navigator.pop(context, true);
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Đặt hàng thất bại: ${res.toString()}")),
+      );
+    }
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text("Có lỗi xảy ra: $e")));
+  }
+}
 
   @override
   Widget build(BuildContext context) {
