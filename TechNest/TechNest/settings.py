@@ -98,7 +98,7 @@ ROOT_URLCONF = 'TechNest.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+         "DIRS": [BASE_DIR / "templates"], 
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -216,8 +216,8 @@ OAUTH2_PROVIDER = {
 
 MOMO_CONFIG = {
     "endpoint": "https://test-payment.momo.vn/v2/gateway/api/create",
-    "accessKey": "F8BBA842ECF85",
-    "secretKey": "K951B6PE1waDMi640xX08PD3vg6EkVlz",
+    "accessKey": os.getenv("MOMO_ACCESS_KEY"),
+    "secretKey": os.getenv("MOMO_SECRET_KEY"),
     "partnerCode": "MOMO",
     "redirectUrl": "http://127.0.0.1:8000/payments/return/",   
     "ipnUrl": "https://a5b3c0371cc8.ngrok-free.app/payments/ipn/",          
@@ -230,6 +230,13 @@ CLIENT_ID = os.getenv("OATUH2_CLIENT_ID")
 CLIENT_SECRET = os.getenv("OATUH2_CLIENT_SECRET")
 CELERY_BROKER_URL = "redis://localhost:6379/0"
 CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
+FPT_API_KEY = os.getenv("FPT_API_KEY")
+API_URL = "https://api.fpt.ai/vision/idr/vnm"
+secret_key_str = os.getenv("CCCD_SECRET_KEY")
+CCCD_SECRET_KEY = secret_key_str.encode("utf-8")
+BLOCK_SIZE = 16
+
+
 UNFOLD = {
     "SITE_TITLE": "TechNest Admin",
     "SITE_HEADER": "TechNest",

@@ -327,27 +327,38 @@ class OrderViewSet(viewsets.GenericViewSet,
         order = self.perform_create(serializer)
 
 
-        momo_response = create_momo_payment(
-            amount=str(int(order.total)),
-            order_id=order.id,  # truyền order.id thôi, hàm tự sinh unique
-            order_info=f"Thanh toán đơn hàng {order.id}"
-        )
-        
+        if order.payment_method == PaymentMethod.MOMO:
+            momo_response = create_momo_payment(
+                amount=str(int(order.total)),
+                order_id=order.id,
+                order_info=f"Thanh toán đơn hàng {order.id}"
+            )
 
-        if momo_response.get("resultCode") == 0:
-            pay_url = momo_response.get("payUrl")
-            qr_code_base64 = generate_qr_from_url(pay_url)
-
+            if momo_response.get("resultCode") == 0:
+                pay_url = momo_response.get("payUrl")
+                qr_code_base64 = generate_qr_from_url(pay_url)
+                order.payment_status = "pending"
+                order.save()
+            else:
+                pay_url = None
+                qr_code_base64 = None
         else:
+            # COD thì tự động thành công
+            order.payment_status = "paid"
+            order.save()
+            momo_response = {}
             pay_url = None
+            qr_code_base64 = None
 
         return Response(
             {
                 "message": "Order created successfully!",
                 "order_id": order.id,
+                "payment_method": order.payment_method,
+                "payment_status": order.payment_status,
                 "payUrl": pay_url,
-                "qrCodeImage":qr_code_base64,
-                "momo_response": momo_response 
+                "qrCodeImage": qr_code_base64,
+                "momo_response": momo_response
             },
             status=status.HTTP_201_CREATED
         )
@@ -391,7 +402,7 @@ class OrderViewSet(viewsets.GenericViewSet,
 @api_view(['POST'])
 def momo_ipn(request):
     data = request.data
-    order_id = data.get("orderId")  # ví dụ: "78_1757513847"
+    order_id = data.get("orderId")  
     result_code = data.get("resultCode")
 
     try:

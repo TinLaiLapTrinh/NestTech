@@ -21,6 +21,7 @@ class ApiConfig {
   static const String saveFcmToken="/save-fcm-token/";
   static String getRate(int id)=>"/products/$id/rates/";
   static const String productsDeleted ="/products/deleted/";
+  static String shopProducts(int id)=> "/products/shop-products/$id/";
   
   // Location
   static String getProvinces = "/locations/province/";
@@ -32,12 +33,16 @@ class ApiConfig {
 
   // User
   static const String profileUser = "/users/current-user/";
+  static String userDetail(int id)=>"/users/$id/";
   static String customerRegister = "/users/customer-register/";
   static String supplierRegister = "/users/supplier-register/";
   static String followers = "/follow/followers/";
   static String followings = "/follow/followings/";
   static String unFollow(int id) => "/follow/$id/unfollow/";
   static String isFollowing(int id) => "/follow/$id/is-following/";
+  static String follow(int id)=>"/follow/$id/follow/";
+  static String verification = "/verify-cccd/";
+
 
   // order
   static String addOrder = "/order/";

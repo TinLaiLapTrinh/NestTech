@@ -61,9 +61,12 @@ class PaymentStatus:
 
 class PaymentMethod:
     COD = "cod"
-    VNPAY = "vnpay"
+    MOMO = "momo"
 
     CHOICES = [
         (COD, "Thanh toán khi nhận hàng"),
-        (VNPAY, "vnpay"),
+        (MOMO, "momo"),
     ]
+    @classmethod
+    def values(cls):
+        return [cls.COD, cls.MOMO]

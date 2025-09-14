@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets, generics, status, parsers, permissions
-from .models import User, Follow
+from .models import User, Follow,AuditLog
 from . import serializers
 from accounts.perms import IsFollower, IsCustomer
 from utils.choice import UserType
@@ -13,8 +13,13 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import FcmToken
+from rest_framework.views import APIView
+from .verification.verification_api import hash_cccd, recognize_id_card, encrypt_cccd, decrypt_cccd
+import requests
+from django.db import IntegrityError
 
-class UserViewSet(viewsets.ViewSet, generics.ListAPIView):
+
+class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
     queryset = User.objects.filter(is_active=True)
     serializer_class = serializers.UserSerializer
     parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
@@ -30,6 +35,8 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView):
             return serializers.SupplierRegister
         if self.action in ["customer_register"]:
             return serializers.CustomerRegister
+        if self.action in ["get_current_user"]:
+            return serializers.UserSerializer
 
         return super().get_serializer_class()
     
@@ -138,3 +145,59 @@ def save_fcm_token(request):
         fcm_token_obj.users.add(request.user)
     
     return Response({"status": "Token saved"})
+
+
+class VerifyCCCDView(APIView):
+    def post(self, request):
+        user = request.user
+        
+        if user.user_type != UserType.SUPPLIER:
+            return Response({"error": "User type does not require verification."}, status=400)
+
+        image_file = request.FILES.get("image")
+        if not image_file:
+            return Response({"error": "Missing image"}, status=400)
+
+        try:
+            # OCR CCCD
+            result = recognize_id_card(image_file)
+            info_list = result.get("data", [])
+            info = info_list[0] if info_list and isinstance(info_list, list) else {}
+
+            # Kiểm tra các trường quan trọng
+            verified = all(info.get(k) for k in ["id", "name", "dob"])
+            cccd_data = {
+                "id": info['id'],
+                "name": info['name'],
+                "dob": info['dob']
+            }
+
+            cccd_hash = hash_cccd(cccd_data)  
+
+
+            enc_cccd = encrypt_cccd(cccd_data)  
+            if AuditLog.objects.filter(cccd_hash=cccd_hash).exists():
+                return Response({
+                    "verified": verified,
+                    "message": "Duplicate CCCD detected. Verification already recorded."
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+
+            try:
+                AuditLog.objects.create(
+                    user=user,
+                    cccd_hash=cccd_hash,       
+                    cccd_enc=enc_cccd,   
+                    verified=True
+                )
+                print(decrypt_cccd(enc_cccd))
+            except IntegrityError:
+                return Response({"error": "Duplicate CCCD detected."}, status=400)
+            if verified:
+                user.is_verified = True
+                user.save()
+
+            return Response({"verified": verified}, status=200)
+
+        except requests.exceptions.RequestException as e:
+            return Response({"error": f"FPT API error: {str(e)}"}, status=502)

@@ -71,8 +71,8 @@ class ProductViewSet(viewsets.GenericViewSet,
             Product.objects
             .filter(active=True, is_deleted=False)
             .annotate(
-                rate_count=Count("rates", distinct=True),
-                rate_avg=Avg("rates__rate")
+                rate_count=Count("rates", filter=Q(rates__is_spam=False), distinct=True),
+                rate_avg=Avg("rates__rate", filter=Q(rates__is_spam=False))
             )
         )
 
@@ -86,7 +86,7 @@ class ProductViewSet(viewsets.GenericViewSet,
             return ProductVariantSerializer
         elif self.action=='get_options':
             return ProductOptionSerializer
-        elif self.action in ['my_products','list','deleted_products']:
+        elif self.action in ['my_products','list','deleted_products','shop_products']:
             return ProductListSerializer
         elif self.action =='retrieve':
             return ProductDetailSerializer
@@ -248,6 +248,16 @@ class ProductViewSet(viewsets.GenericViewSet,
     def my_products(self,request):
         product_owner = request.user
         products = Product.objects.filter(is_deleted=False, owner=product_owner)
+        page = self.paginate_queryset(products)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(products, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['get'], url_path=r'shop-products/(?P<shop_id>\d+)')
+    def shop_products(self, request, shop_id=None):
+        products = Product.objects.filter(is_deleted=False, owner_id=shop_id)
         page = self.paginate_queryset(products)
         if page is not None:
             serializer = self.get_serializer(page, many=True)

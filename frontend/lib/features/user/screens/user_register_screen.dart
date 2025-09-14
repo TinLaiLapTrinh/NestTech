@@ -46,7 +46,7 @@ class _UserRegisterScreenState extends State<UserRegisterScreen> {
       _isLoading = true;
     });
 
-    UserModel newUser = UserModel(
+    UserModelRegister newUser = UserModelRegister(
       username: _usernameController.text,
       firstName: _firstNameController.text,
       lastName: _lastNameController.text,

@@ -14,7 +14,7 @@ class RootScreen extends StatefulWidget {
 
 class _RootScreenState extends State<RootScreen> {
   bool _loading = true;
-  String? _userType; // guest / customer / supplier
+  String? _userType;
 
   @override
   void initState() {
@@ -57,9 +57,9 @@ class _RootScreenState extends State<RootScreen> {
     
 
     if (_userType == "supplier") {
-      // supplier -> ép login bằng customer
+      
       return const LoginScreen();
-      // hoặc return SupplierDashboard() nếu bạn có màn riêng
+      
     }
 
     // fallback

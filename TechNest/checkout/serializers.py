@@ -1,6 +1,6 @@
 from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
-from utils.choice import UserType, DeliveryMethods, DeliveryStatus
+from utils.choice import UserType, DeliveryMethods, DeliveryStatus, PaymentMethod
 from utils.serializers import ImageSerializer
 from .models import Order,OrderDetail,ShoppingCart, ShoppingCartItem, OrderDetailConfirmImage
 from products.models import ProductVariant, Product, VariantOptionValue, Rate
@@ -308,7 +308,7 @@ class OrderSerializer(serializers.ModelSerializer):
         fields = [
             "total", "owner", "province","ward","district",
             "address", "receiver_phone_number", "latitude",
-            "longitude","order_details"
+            "longitude","order_details","payment_method",
         ]
         
         extra_kwargs = {"owner": {"read_only": True}}
@@ -321,6 +321,10 @@ class OrderSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"phone": "Thiếu số điện thoại người nhận"})
         if not phone_number.isdigit() or len(phone_number) < 9 or len(phone_number) > 13:
             raise serializers.ValidationError({"phone": "Số điện thoại không hợp lệ"})
+
+    
+        if data.get("payment_method") not in PaymentMethod.values():
+            raise serializers.ValidationError({"payment_method": "Phương thức thanh toán không hợp lệ"})
         return data
 
     def create(self, validated_data):

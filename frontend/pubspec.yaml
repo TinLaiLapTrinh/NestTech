@@ -59,6 +59,7 @@ dependencies:
   dio: ^5.0.0
   turf: ^0.0.10
   geolocator: ^14.0.2
+  url_launcher: ^6.2.10
 
 
 dev_dependencies:

@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:frontend/core/configs/headers.dart';
-import 'package:frontend/features/user/models/user_register_model.dart';
+import 'package:frontend/features/user/models/user_model.dart';
 import 'package:frontend/features/user/provider/user_provider.dart';
 import 'package:http/http.dart' as http;
 

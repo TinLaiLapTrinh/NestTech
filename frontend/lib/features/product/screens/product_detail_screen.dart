@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/features/checkout/services/checkout_service.dart';
 import 'package:frontend/features/product/models/product_detail_model.dart';
+import 'package:frontend/features/user/screens/supplier_profile.dart';
 import 'package:intl/intl.dart';
 
 import '../services/product_service.dart';
@@ -351,6 +352,77 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ),
                   ),
 
+                  const Divider(),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      children: [
+                        // Avatar shop
+                        CircleAvatar(
+                          radius: 24,
+                          backgroundImage: product.owner.avatar != null
+                              ? NetworkImage(product.owner.avatar!)
+                              : const NetworkImage(
+                                  "https://via.placeholder.com/150",
+                                ),
+                        ),
+                        const SizedBox(width: 12),
+
+                        // Tên shop + status
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                product.owner.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                "Nhà cung cấp uy tín",
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Nút hành động
+                        Row(
+                          children: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => SupplierDetailScreen(
+                                      userId: product.owner.id,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: const Text("Xem shop"),
+                            ),
+                            const SizedBox(width: 8),
+                            OutlinedButton(
+                              onPressed: () {
+                                // TODO: mở chat với shop
+                              },
+                              child: const Text("Chat"),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                   const Divider(),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),

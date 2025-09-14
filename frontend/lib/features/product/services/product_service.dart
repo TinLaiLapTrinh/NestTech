@@ -51,6 +51,23 @@ class ProductService {
     }
   }
 
+    static Future<List<ProductModel>> getShopProducts(int id) async {
+    final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.shopProducts(id));
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+
+      List<ProductModel> products = (data['results'] as List)
+          .map((item) => ProductModel.fromJson(item))
+          .toList();
+
+      return products;
+    } else {
+      throw Exception('Failed to load shop products');
+    }
+  }
+
   static Future<List<ProductModel>> getMyProductDeteted() async {
     final headers = await ApiHeaders.getAuthHeaders();
     final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.productsDeleted);

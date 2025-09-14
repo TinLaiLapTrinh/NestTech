@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Follow
+from .models import User, Follow, AuditLog
 from checkout.models import ShoppingCart
 from products.models import Category, Product, ProductImage
 from utils.serializers import ImageSerializer
@@ -9,14 +9,14 @@ from django.db import transaction
 
 
 class UserSerializer(serializers.ModelSerializer):
-
     follow_count = serializers.SerializerMethodField()
+    is_verified = serializers.SerializerMethodField()
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
         data["avatar"] = instance.avatar.url if instance.avatar else ""
         return data
-    
+
     class Meta:
         model = User
         fields = [
@@ -32,28 +32,21 @@ class UserSerializer(serializers.ModelSerializer):
             "phone_number",
             "user_type",
             "follow_count",
-            
-            
+            "is_verified",  # 👈 thêm vào output
         ]
         extra_kwargs = {"password": {"write_only": True}}
 
     def get_follow_count(self, obj):
         return obj.followers.count() if obj.user_type == UserType.SUPPLIER else obj.following.count()
 
-
-           
-
-    def create(self, validated_data):
-        user = User(**validated_data)
-        user.set_password(user.password)
-        user.save()
-        return user
-    
+    def get_is_verified(self, obj):
+        if obj.user_type == UserType.SUPPLIER:
+            latest_log = AuditLog.objects.filter(user=obj).order_by("-timestamp").first()
+            return latest_log.verified if latest_log else False
+        return None  # khách hàng không cần hiện
 
 
-    
 
-    
 class CustomerRegister(serializers.ModelSerializer):
     avatar = serializers.ImageField(required=False)
 

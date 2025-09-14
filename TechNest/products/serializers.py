@@ -588,6 +588,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         return {
             "id": obj.owner.id,
             "name": obj.owner.first_name +" " + obj.owner.last_name,
+            "avatar": obj.owner.avatar
         }
 
     def get_price_range(self, obj):

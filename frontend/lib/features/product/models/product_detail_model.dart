@@ -57,11 +57,12 @@ class ProductDetailModel {
 class Owner {
   final int id;
   final String name;
+  final String? avatar;
 
-  Owner({required this.id, required this.name});
+  Owner({required this.id, required this.name, this.avatar});
 
   factory Owner.fromJson(Map<String, dynamic> json) {
-    return Owner(id: json['id'], name: json['name']);
+    return Owner(id: json['id'], name: json['name'], avatar: json['avatar']);
   }
 }
 
