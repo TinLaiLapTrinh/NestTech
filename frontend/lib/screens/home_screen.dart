@@ -7,7 +7,6 @@ import 'package:frontend/features/checkout/screens/delivery_order.dart';
 import 'package:frontend/features/checkout/screens/order_request_screen.dart';
 import 'package:frontend/features/checkout/screens/order_screen.dart';
 import 'package:frontend/features/location/screens/location_manager_screen.dart';
-import 'package:frontend/features/location/screens/map_screen.dart';
 import 'package:frontend/features/product/screens/my_product_screen.dart';
 import 'package:frontend/features/product/screens/product_list_screen.dart';
 import 'package:frontend/features/shared/widgets/app_footer.dart';
@@ -75,7 +74,6 @@ class _HomeScreenState extends State<HomeScreen> {
       const ProductListScreen(),
       const MyProductListScreen(),
       const OrderRequestScreen(),
-      const MapFilterScreen(),
       const ProfileScreen(),
       if (isLoggedIn)
         _buildWelcomeWidget("Supplier", userProvider)

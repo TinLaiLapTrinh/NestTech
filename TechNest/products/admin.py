@@ -8,6 +8,7 @@ from admin_site.components import option_display
 from utils.choice import ProductStatus
 from unfold.admin import ModelAdmin
 from accounts.models import AuditLog
+import json
 
 
 
@@ -30,13 +31,29 @@ class CategoryAdmin(ModelAdmin):
 
 class ProductApproved(ModelAdmin):
     list_display = ['name','owner','category_name','status_display']
-    readonly_fields = ['image_gallery', 'owner']
+    readonly_fields = ['image_gallery', 'owner','description_list']
     fieldsets = [
         ("Status", {"fields": ["status"]}),
-        ("Detail", {"fields": ["name", "owner","category"]}),
+        ("Detail", {"fields": ["name", "owner","category","description", 'description_list']}),
         ("Location", {"fields": ["address", "province","district", "ward"]}),
         ("Images", {"fields": ["image_gallery"]}),
     ]
+
+    def description_list(self, product: Product):
+        """Hiển thị description_product dạng HTML đẹp"""
+        descriptions = product.descriptions.all()  # <<--- thêm .all()
+        if not descriptions.exists():
+            return "Không có mô tả chi tiết"
+
+        html = "<ul style='padding-left:20px;'>"
+        for item in descriptions:
+            title = getattr(item, "title", "")
+            content = getattr(item, "content", "")
+            html += f"<li><b>{title}:</b> {content}</li>"
+        html += "</ul>"
+        return format_html(html)
+
+
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         # Lấy danh sách user_id đã được xác minh

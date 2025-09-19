@@ -24,20 +24,25 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
   final descCtrl = TextEditingController();
   final minPriceCtrl = TextEditingController();
   final maxPriceCtrl = TextEditingController();
-  final categoryCtrl = TextEditingController();
-  final provinceCtrl = TextEditingController();
-  final districtCtrl = TextEditingController();
-  final wardCtrl = TextEditingController();
   final addressCtrl = TextEditingController();
+
+  // Location
   List<Province> _provinces = [];
   List<District> _districts = [];
   List<Ward> _wards = [];
-
   Province? _selectedProvince;
   District? _selectedDistrict;
   Ward? _selectedWard;
-  CategoryModel? _selectedCategory;
+
+  // Category
   List<CategoryModel> _categories = [];
+  CategoryModel? _selectedCategory;
+
+  // Descriptions động
+  List<DescriptionItem> descriptions = [];
+
+  // Images
+  List<File> selectedImages = [];
 
   @override
   void initState() {
@@ -46,6 +51,101 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
     _loadProvinces();
   }
 
+  // ========== Descriptions ==========
+ void _addDescription() {
+  setState(() {
+    descriptions.add(DescriptionItem(
+      title: "Thông tin sản phẩm", // Giá trị mặc định thay vì rỗng
+      content: "Mô tả chi tiết",
+    ));
+  });
+}
+
+
+  void _removeDescription(int index) {
+    setState(() {
+      descriptions.removeAt(index);
+    });
+  }
+
+  Widget _buildDescriptionInputs() {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            "Thông tin chi tiết *",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: _addDescription,
+          ),
+        ],
+      ),
+      
+      if (descriptions.isEmpty)
+        const Text(
+          "Vui lòng thêm ít nhất 1 thông tin chi tiết",
+          style: TextStyle(color: Colors.red, fontSize: 12),
+        ),
+      
+      ...descriptions.asMap().entries.map((entry) {
+        final index = entry.key;
+        final desc = entry.value;
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                TextFormField(
+                  initialValue: desc.title,
+                  decoration: InputDecoration(
+                    labelText: "Tiêu đề *",
+                    errorText: desc.title.isEmpty ? "Vui lòng nhập tiêu đề" : null,
+                    border: const OutlineInputBorder(),
+                  ),
+                  onChanged: (val) {
+                    setState(() {
+                      descriptions[index] = desc.copyWith(title: val);
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  initialValue: desc.content,
+                  decoration: InputDecoration(
+                    labelText: "Nội dung *",
+                    errorText: desc.content.isEmpty ? "Vui lòng nhập nội dung" : null,
+                    border: const OutlineInputBorder(),
+                  ),
+                  maxLines: 2,
+                  onChanged: (val) {
+                    setState(() {
+                      descriptions[index] = desc.copyWith(content: val);
+                    });
+                  },
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () => _removeDescription(index),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    ],
+  );
+}
+  // ========== Load dữ liệu ==========
   Future<void> _loadCategories() async {
     try {
       final cats = await ProductService.getCategory();
@@ -58,9 +158,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
   Future<void> _loadProvinces() async {
     try {
       final provs = await LocationService.getProvinces();
-      setState(() {
-        _provinces = provs;
-      });
+      setState(() => _provinces = provs);
     } catch (e) {
       debugPrint("Error loading provinces: $e");
     }
@@ -69,9 +167,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
   Future<void> _loadDistricts(String provinceCode) async {
     try {
       final dists = await LocationService.getDistricts(provinceCode);
-      setState(() {
-        _districts = dists;
-      });
+      setState(() => _districts = dists);
     } catch (e) {
       debugPrint("Error loading districts: $e");
     }
@@ -80,118 +176,104 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
   Future<void> _loadWards(String districtCode) async {
     try {
       final wards = await LocationService.getWards(districtCode);
-      setState(() {
-        _wards = wards;
-      });
+      setState(() => _wards = wards);
     } catch (e) {
       debugPrint("Error loading wards: $e");
     }
   }
 
-  // ===== Location =====
-
+  // ========== Location Selector ==========
   Widget _buildProvinceSelector() {
-    return TextFormField(
-      readOnly: true,
-      decoration: const InputDecoration(
-        labelText: "Tỉnh/Thành phố",
-        suffixIcon: Icon(Icons.arrow_drop_down),
+    return _buildSelector(
+      label: "Tỉnh/Thành phố",
+      value: _selectedProvince?.fullName,
+      options: _provinces.map(
+        (p) => MapEntry(p.fullName, () async {
+          Navigator.pop(context);
+          setState(() {
+            _selectedProvince = p;
+            _selectedDistrict = null;
+            _selectedWard = null;
+            _districts = [];
+            _wards = [];
+          });
+          await _loadDistricts(p.code);
+        }),
       ),
-      controller: TextEditingController(
-        text: _selectedProvince?.fullName ?? "",
-      ),
-      onTap: () {
-        showModalBottomSheet(
-          context: context,
-          builder: (_) {
-            return ListView(
-              children: _provinces.map((p) {
-                return ListTile(
-                  title: Text(p.fullName),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    setState(() {
-                      _selectedProvince = p;
-                      _selectedDistrict = null;
-                      _selectedWard = null;
-                      _districts = [];
-                      _wards = [];
-                    });
-                    await _loadDistricts(p.code);
-                  },
-                );
-              }).toList(),
-            );
-          },
-        );
-      },
     );
   }
 
   Widget _buildDistrictSelector() {
     if (_districts.isEmpty) return const SizedBox.shrink();
-
-    return TextFormField(
-      readOnly: true,
-      decoration: const InputDecoration(
-        labelText: "Quận/Huyện",
-        suffixIcon: Icon(Icons.arrow_drop_down),
+    return _buildSelector(
+      label: "Quận/Huyện",
+      value: _selectedDistrict?.fullName,
+      options: _districts.map(
+        (d) => MapEntry(d.fullName, () async {
+          Navigator.pop(context);
+          setState(() {
+            _selectedDistrict = d;
+            _selectedWard = null;
+            _wards = [];
+          });
+          await _loadWards(d.code);
+        }),
       ),
-      controller: TextEditingController(
-        text: _selectedDistrict?.fullName ?? "",
-      ),
-      onTap: () {
-        showModalBottomSheet(
-          context: context,
-          builder: (_) {
-            return ListView(
-              children: _districts.map((d) {
-                return ListTile(
-                  title: Text(d.fullName),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    setState(() {
-                      _selectedDistrict = d;
-                      _selectedWard = null;
-                      _wards = [];
-                    });
-                    await _loadWards(d.code);
-                  },
-                );
-              }).toList(),
-            );
-          },
-        );
-      },
     );
   }
 
   Widget _buildWardSelector() {
     if (_wards.isEmpty) return const SizedBox.shrink();
+    return _buildSelector(
+      label: "Phường/Xã",
+      value: _selectedWard?.fullName,
+      options: _wards.map(
+        (w) => MapEntry(w.fullName, () {
+          Navigator.pop(context);
+          setState(() => _selectedWard = w);
+        }),
+      ),
+    );
+  }
 
+  Widget _buildCategorySelector() {
+    return _buildSelector(
+      label: "Danh mục",
+      value: _selectedCategory?.type,
+      options: _categories.map(
+        (c) => MapEntry(c.type, () {
+          Navigator.pop(context);
+          setState(() => _selectedCategory = c);
+        }),
+      ),
+    );
+  }
+
+  Widget _buildSelector({
+    required String label,
+    required String? value,
+    required Iterable<MapEntry<String, Function()>> options,
+  }) {
     return TextFormField(
       readOnly: true,
-      decoration: const InputDecoration(
-        labelText: "Phường/Xã",
-        suffixIcon: Icon(Icons.arrow_drop_down),
+      decoration: InputDecoration(
+        labelText: label,
+        suffixIcon: const Icon(Icons.arrow_drop_down),
       ),
-      controller: TextEditingController(text: _selectedWard?.fullName ?? ""),
+      controller: TextEditingController(text: value ?? ""),
       onTap: () {
         showModalBottomSheet(
           context: context,
           builder: (_) {
             return ListView(
-              children: _wards.map((w) {
-                return ListTile(
-                  title: Text(w.fullName),
-                  onTap: () {
-                    Navigator.pop(context);
-                    setState(() {
-                      _selectedWard = w;
-                    });
-                  },
-                );
-              }).toList(),
+              children: options
+                  .map(
+                    (opt) => ListTile(
+                      title: Text(opt.key),
+                      onTap: opt.value,
+                    ),
+                  )
+                  .toList(),
             );
           },
         );
@@ -199,46 +281,10 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
     );
   }
 
-  Widget _buildCategorySelector() {
-    return TextFormField(
-      readOnly: true,
-      decoration: const InputDecoration(
-        labelText: "Danh mục",
-        suffixIcon: Icon(Icons.arrow_drop_down),
-      ),
-      controller: TextEditingController(text: _selectedCategory?.type ?? ""),
-      onTap: () {
-        showModalBottomSheet(
-          context: context,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-          ),
-          builder: (context) {
-            return ListView(
-              children: _categories.map((c) {
-                return ListTile(
-                  title: Text(c.type),
-                  onTap: () async {
-                    Navigator.pop(context); // đóng sheet
-                    setState(() {
-                      _selectedCategory = c;
-                    });
-                  },
-                );
-              }).toList(),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  List<File> selectedImages = [];
-
+  // ========== Image Picker ==========
   Future<void> _pickImages() async {
     final picker = ImagePicker();
     final pickedFiles = await picker.pickMultiImage();
-
     if (pickedFiles.isNotEmpty) {
       setState(() {
         selectedImages = pickedFiles.map((e) => File(e.path)).toList();
@@ -246,39 +292,57 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
     }
   }
 
+  // ========== Submit ==========
   Future<void> _submit() async {
-    if (_formKey.currentState!.validate()) {
-      final product = ProductRegisterModel(
-        id: null,
-        name: nameCtrl.text,
-        description: descCtrl.text,
-        category: _selectedCategory?.id ?? 0, // ✅ chọn category object
-        minPrice: double.tryParse(minPriceCtrl.text) ?? 0,
-        maxPrice: double.tryParse(maxPriceCtrl.text) ?? 0,
-        uploadImages: selectedImages,
-        province: _selectedProvince?.code ?? "", // ✅ chọn tỉnh đã chọn
-        district: _selectedDistrict?.code ?? "",
-        ward: _selectedWard?.code ?? "",
-        address: addressCtrl.text,
-      );
-
-      final success = await ProductService.registerSupplier(product);
-
-      if (success) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Tạo sản phẩm thành công!")),
-          );
-          Navigator.pop(context);
-        }
-      } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Tạo sản phẩm thất bại!")));
-      }
-    }
+  // Kiểm tra descriptions có hợp lệ không
+  final invalidDescriptions = descriptions.where((desc) => !desc.isValid).toList();
+  
+  if (invalidDescriptions.isNotEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Vui lòng nhập đầy đủ tiêu đề và nội dung cho tất cả thông tin chi tiết")),
+    );
+    return;
   }
 
+  if (descriptions.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Vui lòng thêm ít nhất 1 thông tin chi tiết")),
+    );
+    return;
+  }
+
+  if (_formKey.currentState!.validate()) {
+    final product = ProductRegisterModel(
+      id: null,
+      name: nameCtrl.text,
+      description: descCtrl.text,
+      category: _selectedCategory?.id ?? 0,
+      minPrice: double.tryParse(minPriceCtrl.text) ?? 0,
+      maxPrice: double.tryParse(maxPriceCtrl.text) ?? 0,
+      uploadImages: selectedImages,
+      province: _selectedProvince?.code ?? "",
+      district: _selectedDistrict?.code ?? "",
+      ward: _selectedWard?.code ?? "",
+      address: addressCtrl.text,
+      descriptions: descriptions,
+    );
+
+    final success = await ProductService.addProduct(product);
+
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Tạo sản phẩm thành công!")),
+      );
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Tạo sản phẩm thất bại!")),
+      );
+    }
+  }
+}
+
+  // ========== UI ==========
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -299,14 +363,13 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                 decoration: const InputDecoration(labelText: "Mô tả"),
                 maxLines: 3,
               ),
+              _buildDescriptionInputs(),
               Row(
                 children: [
                   Expanded(
                     child: TextFormField(
                       controller: minPriceCtrl,
-                      decoration: const InputDecoration(
-                        labelText: "Giá tối thiểu",
-                      ),
+                      decoration: const InputDecoration(labelText: "Giá tối thiểu"),
                       keyboardType: TextInputType.number,
                     ),
                   ),
@@ -314,9 +377,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: maxPriceCtrl,
-                      decoration: const InputDecoration(
-                        labelText: "Giá tối đa",
-                      ),
+                      decoration: const InputDecoration(labelText: "Giá tối đa"),
                       keyboardType: TextInputType.number,
                     ),
                   ),
@@ -326,7 +387,10 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
               _buildProvinceSelector(),
               _buildDistrictSelector(),
               _buildWardSelector(),
-
+              TextFormField(
+                controller: addressCtrl,
+                decoration: const InputDecoration(labelText: "Địa chỉ chi tiết"),
+              ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: _pickImages,
@@ -334,17 +398,19 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                 label: const Text("Chọn hình ảnh"),
               ),
               Wrap(
-                children: selectedImages.map((img) {
-                  return Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: Image.file(
-                      img,
-                      width: 80,
-                      height: 80,
-                      fit: BoxFit.cover,
-                    ),
-                  );
-                }).toList(),
+                children: selectedImages
+                    .map(
+                      (img) => Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Image.file(
+                          img,
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    )
+                    .toList(),
               ),
               const SizedBox(height: 20),
               ElevatedButton(

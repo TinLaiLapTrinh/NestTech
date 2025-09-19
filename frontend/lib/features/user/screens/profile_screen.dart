@@ -13,7 +13,6 @@ class ProfileScreen extends StatelessWidget {
   Future<void> _pickAndVerify(BuildContext context) async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.camera);
-    // 👉 có thể thay bằng ImageSource.gallery
 
     if (picked != null) {
       final file = File(picked.path);

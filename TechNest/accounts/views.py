@@ -89,7 +89,7 @@ class FollowViewSet(viewsets.GenericViewSet):
             context={"request": request, "followee": followee}
         )
         serializer.is_valid(raise_exception=True)
-        follow = serializer.save()
+        print(follow.data)
 
         return Response(self.get_serializer(follow).data, status=status.HTTP_201_CREATED)
 

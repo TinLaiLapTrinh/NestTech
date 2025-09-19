@@ -12,6 +12,7 @@ class ProductDetailModel {
   final Location location;
   final List<ProductVariant> variants;
   final List<Option> options;
+  final List<Description> descriptions;
   final int soldQuantity;
 
   ProductDetailModel({
@@ -26,6 +27,7 @@ class ProductDetailModel {
     required this.location,
     required this.variants,
     required this.options,
+    required this.descriptions,
     required this.soldQuantity,
   });
 
@@ -47,6 +49,9 @@ class ProductDetailModel {
           .toList(),
       options: (json['options'] as List? ?? [])
           .map((e) => Option.fromJson(e))
+          .toList(),
+      descriptions: (json['descriptions'] as List? ?? [])
+          .map((e) => Description.fromJson(e))
           .toList(),
       soldQuantity: json['sold_quantity'] ?? 0,
     );
@@ -213,6 +218,28 @@ class OptionType {
     return OptionType(type: json['type']);
   }
 }
+
+class Description {
+  final int id;
+  final String title;
+  final String content;
+
+  Description({required this.id, required this.title, required this.content});
+
+  factory Description.fromJson(Map<String, dynamic> json) {
+    return Description(
+      id: json['id'],
+      title: json['title'],
+      content: json['content'],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    "title": title,
+    "content": content,
+  };
+}
+
 
 class Rate {
   final int id;

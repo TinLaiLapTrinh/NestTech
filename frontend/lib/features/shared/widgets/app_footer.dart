@@ -23,7 +23,6 @@ class AppFooter extends StatelessWidget {
         BottomNavigationBarItem(icon: Icon(Icons.store), label: "Sản phẩm"),
         BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: "Sản phẩm của tôi"),
         BottomNavigationBarItem(icon: Icon(Icons.assignment), label: "Đơn hàng"),
-        BottomNavigationBarItem(icon: Icon(Icons.map), label: "Bản đồ"),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: "Tài khoản"),
         BottomNavigationBarItem(icon: Icon(Icons.logout), label: "Đăng xuất"),
       ];

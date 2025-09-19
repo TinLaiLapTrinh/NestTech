@@ -1,5 +1,5 @@
 class ApiConfig {
-  static const String baseUrl = "http://192.168.1.3:8000";
+  static const String baseUrl = "http://192.168.1.14:8000";
 
   // Auth
   static const String tokenEndpoint = "/o/token/";
@@ -16,13 +16,13 @@ class ApiConfig {
   static String productVariants(int id) => "/product/$id/variant/";
   static String productVariantUpdate(int id, int variantId) => "/product/$id/variant/$variantId/";
   static String addProductVariant(int id)=>"/products/$id/generate-variant/";
-  static String productVariantDetai(int id, int variantId) => "/product/$id/variant/$variantId/";
+  static String productVariantDetail(int id, int variantId) => "/product/$id/variant/$variantId/";
   static String options(int id)=>"/products/$id/get-options/";
   static const String saveFcmToken="/save-fcm-token/";
   static String getRate(int id)=>"/products/$id/rates/";
   static const String productsDeleted ="/products/deleted/";
   static String shopProducts(int id)=> "/products/shop-products/$id/";
-  
+
   // Location
   static String getProvinces = "/locations/province/";
   static String getDistrict(String id) => "/locations/$id/district/";

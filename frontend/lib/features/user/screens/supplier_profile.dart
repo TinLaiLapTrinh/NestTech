@@ -52,7 +52,7 @@ class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
       debugPrint("Follow action failed: $e");
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Lỗi khi thực hiện thao tác")),
+        const SnackBar(content:  Text("Lỗi khi thực hiện thao tác ")),
       );
     }
   }
@@ -84,7 +84,7 @@ class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ---- Thông tin nhà phân phối ----
+                
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

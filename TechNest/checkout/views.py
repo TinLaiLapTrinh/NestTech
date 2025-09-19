@@ -194,18 +194,33 @@ class OrderDetailViewSet(viewsets.GenericViewSet,mixins.RetrieveModelMixin, mixi
 
             return OrderDetail.objects.filter(order__owner=user)
 
-
         return OrderDetail.objects.none()
 
     def list(self, request):
         search = request.query_params.get("search")
         delivery_status = request.query_params.get("delivery_status")
-        
+        hide_done = request.query_params.get("hide_done")
+
+        # Chuyển hide_done thành boolean
+        if hide_done is not None:
+            hide_done = hide_done.lower() == "true"
+
+        # Lấy queryset cơ bản và select_related để tránh N+1 query
         queryset = self.get_queryset().select_related('product', 'order')
+
+        # Loại bỏ các đơn đã giao hoặc đã huỷ nếu hide_done = True
+        if hide_done:
+            queryset = queryset.exclude(delivery_status__in=["delivered", "cancelled"])
+
+        # Lọc theo trạng thái nếu có
         if delivery_status:
-            queryset = queryset.filter(
-                delivery_status = delivery_status
-            )
+            queryset = queryset.filter(delivery_status=delivery_status)
+
+        # Lọc theo từ khóa search nếu có
+        if search:
+            queryset = queryset.filter(product__product__name__icontains=search)
+
+        # Phân trang
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)

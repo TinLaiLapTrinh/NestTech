@@ -16,7 +16,6 @@ class ProductService {
   }) async {
     final headers = await ApiHeaders.getAuthHeaders();
 
-    // Build query params nếu có
     final uri = Uri.parse(
       ApiConfig.baseUrl + ApiConfig.productList,
     ).replace(queryParameters: params);
@@ -33,25 +32,64 @@ class ProductService {
     }
   }
 
-  static Future<List<ProductModel>> getMyProduct() async {
+  static Future<List<ProductModel>> getMyProduct({
+    int page = 1,
+    bool hideDone = false,
+    String? deliveryStatus,
+  }) async {
     final headers = await ApiHeaders.getAuthHeaders();
-    final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.myProductList);
-    final response = await http.get(url, headers: headers);
+
+    final queryParams = {
+      "page": page.toString(),
+      "hide_done": hideDone.toString(), // true/false
+      if (deliveryStatus != null) "delivery_status": deliveryStatus,
+    };
+
+    final uri = Uri.parse(
+      "${ApiConfig.baseUrl}${ApiConfig.myProductList}",
+    ).replace(queryParameters: queryParams);
+
+    final response = await http.get(uri, headers: headers);
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-
-      List<ProductModel> products = (data['results'] as List)
-          .map((item) => ProductModel.fromJson(item))
-          .toList();
-
-      return products;
+      final results = data["results"] as List;
+      return results.map((e) => ProductModel.fromJson(e)).toList();
+    } else if (response.statusCode == 404) {
+      return [];
     } else {
       throw Exception('Failed to load my products');
     }
   }
 
-    static Future<List<ProductModel>> getShopProducts(int id) async {
+  static Future<bool> updateDescriptions(
+    List<Description> descriptions,
+    int id,
+  ) async {
+    final headers = await ApiHeaders.getAuthHeaders();
+    final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.productDetail(id));
+    final body = jsonEncode({
+      "description_product": descriptions.map((d) => d.toJson()).toList(),
+    });
+    print("Mẫu gửi về: $body");
+
+    final res = await http.patch(
+      url,
+      headers: {
+        ...headers,
+        "Content-Type": "application/json", // 🔑 bắt buộc
+      },
+      body: body,
+    );
+
+    if (res.statusCode == 200) {
+      return true;
+    } else {
+      throw Exception('Failed to get product detail');
+    }
+  }
+
+  static Future<List<ProductModel>> getShopProducts(int id) async {
     final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.shopProducts(id));
     final response = await http.get(url);
 
@@ -81,6 +119,9 @@ class ProductService {
           .toList();
 
       return products;
+    } else if (response.statusCode == 404) {
+      // Hết sản phẩm
+      return [];
     } else {
       throw Exception('Failed to load my products');
     }
@@ -219,24 +260,22 @@ class ProductService {
     }
   }
 
- static Future<bool> registerSupplier(ProductRegisterModel request) async {
-  final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.addNewProduct);
+  static Future<bool> addProduct(ProductRegisterModel request) async {
+    final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.addNewProduct);
+    print(request.descriptions);
+    final multipartRequest = await request.toMultipartRequest(url);
 
-  final multipartRequest = await request.toMultipartRequest(url);
+    final header = await ApiHeaders.getAuthHeaders(); // sửa ở đây
+    multipartRequest.headers.addAll(header);
 
-  final header = await ApiHeaders.getAuthHeaders(); // sửa ở đây
-  multipartRequest.headers.addAll(header);
+    final streamedResponse = await multipartRequest.send();
+    final response = await http.Response.fromStream(streamedResponse);
 
-  final streamedResponse = await multipartRequest.send();
-  final response = await http.Response.fromStream(streamedResponse);
-
-  if (response.statusCode == 200 || response.statusCode == 201) {
-    return true;
-  } else {
-    debugPrint("Đăng ký sản phẩm thất bại: ${response.body}");
-    return false;
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return true;
+    } else {
+      debugPrint("Đăng ký sản phẩm thất bại: ${response.body}");
+      return false;
+    }
   }
-}
-
-
 }

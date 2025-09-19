@@ -38,10 +38,6 @@ class CategoryViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveA
     queryset = Category.objects.all()
 
     serializer_class = CategorySerializer
-    # def get_serializer_class(self):
-    #     if self.action == 'retrieve':
-    #         return CategoryDetailSerializer
-    #     return CategoryListSerializer
 
 class OptionViewSet(viewsets.ReadOnlyModelViewSet):  
     queryset = Option.objects.all()
@@ -77,7 +73,7 @@ class ProductViewSet(viewsets.GenericViewSet,
         )
 
     def get_serializer_class(self):
-        if self.action in ['create','update', 'partial_update']:
+        if self.action in ['create','partial_update']:
             return ProductSerializer
         elif self.action == 'option_setup':
             return ProductOptionSetupSerializer
@@ -88,7 +84,7 @@ class ProductViewSet(viewsets.GenericViewSet,
             return ProductOptionSerializer
         elif self.action in ['my_products','list','deleted_products','shop_products']:
             return ProductListSerializer
-        elif self.action =='retrieve':
+        elif self.action in ['retrieve', 'update']:
             return ProductDetailSerializer
         
         return ProductSerializer  
@@ -127,20 +123,24 @@ class ProductViewSet(viewsets.GenericViewSet,
         return Response(serializer.data)
     
     def create(self, request):
+        print(request.data)
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            product = serializer.save(owner=request.user)
+            # print(serializer.data)
+            product = serializer.save()
             return Response(    
                 {"message": "Product created successfully!", "product_id": product.id},
                 status=status.HTTP_201_CREATED
             )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
     
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
 
         data = request.data.copy()
+        print(data)
         if 'owner' in data:
             data.pop('owner')
 

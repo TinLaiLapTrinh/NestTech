@@ -32,7 +32,7 @@ class UserSerializer(serializers.ModelSerializer):
             "phone_number",
             "user_type",
             "follow_count",
-            "is_verified",  # 👈 thêm vào output
+            "is_verified", 
         ]
         extra_kwargs = {"password": {"write_only": True}}
 
