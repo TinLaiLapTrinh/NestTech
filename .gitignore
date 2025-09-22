@@ -95,3 +95,4 @@ frontend/.vscode/
 # Optional: ignore local env
 frontend/.env
 TechNest/firebase/*.json
+TechNest/hf_cache/
