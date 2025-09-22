@@ -83,7 +83,7 @@ class _MyProductDetailScreenState extends State<MyProductDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- Ảnh sản phẩm
+            
             if (p.images.isNotEmpty) ...[
               CarouselSlider(
                 options: CarouselOptions(
@@ -106,7 +106,7 @@ class _MyProductDetailScreenState extends State<MyProductDetailScreen> {
               const SizedBox(height: 12),
             ],
 
-            // --- Tên, trạng thái
+
             Text(
               p.name,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -114,7 +114,7 @@ class _MyProductDetailScreenState extends State<MyProductDetailScreen> {
             Text("Trạng thái: ${p.status}"),
             const Divider(),
 
-            // --- Giá, số lượng bán
+
             Text(
               "Giá: ${p.priceRange.min} - ${p.priceRange.max} đ",
               style: const TextStyle(
@@ -126,12 +126,12 @@ class _MyProductDetailScreenState extends State<MyProductDetailScreen> {
             Text("Đã bán: ${p.soldQuantity}"),
             const Divider(),
 
-            // --- Danh mục, địa chỉ
+
             Text("Danh mục: ${p.category}"),
             Text("Địa chỉ: ${p.location.ward}, ${p.location.province}"),
             const Divider(),
 
-            // --- Mô tả ngắn
+
             const Text(
               "Mô tả sản phẩm:",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -143,7 +143,7 @@ class _MyProductDetailScreenState extends State<MyProductDetailScreen> {
             ),
             const SizedBox(height: 10),
 
-            // --- Descriptions
+
             const Text(
               "Chi tiết:",
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
@@ -212,7 +212,7 @@ class _MyProductDetailScreenState extends State<MyProductDetailScreen> {
             ),
             const Divider(),
 
-            // --- Options
+
             if (p.options.isNotEmpty) ...[
               const Text(
                 "Thuộc tính:",
@@ -242,7 +242,7 @@ class _MyProductDetailScreenState extends State<MyProductDetailScreen> {
               label: const Text("Thêm thuộc tính"),
             ),
 
-            // --- Variants
+
             if (p.variants.isNotEmpty) ...[
               const Text(
                 "Biến thể:",
@@ -261,7 +261,7 @@ class _MyProductDetailScreenState extends State<MyProductDetailScreen> {
               const Divider(),
             ],
 
-            // --- Action buttons
+
             Row(
               children: [
                 Expanded(
@@ -282,7 +282,7 @@ class _MyProductDetailScreenState extends State<MyProductDetailScreen> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {
-                      // TODO: Ẩn / Xóa sản phẩm
+                      
                     },
                     child: const Text("Xóa / Ẩn"),
                   ),
@@ -367,7 +367,7 @@ class _EditDescriptionDialogState extends State<_EditDescriptionDialog> {
               Navigator.pop(
                 context,
                 Description(
-                  id: widget.item?.id ?? 0, // nếu thêm mới thì tạm id = 0
+                  id: widget.item?.id ?? 0, 
                   title: _titleCtrl.text,
                   content: _contentCtrl.text,
                 ),

@@ -159,12 +159,10 @@ class VerifyCCCDView(APIView):
             return Response({"error": "Missing image"}, status=400)
 
         try:
-            # OCR CCCD
             result = recognize_id_card(image_file)
             info_list = result.get("data", [])
             info = info_list[0] if info_list and isinstance(info_list, list) else {}
 
-            # Kiểm tra các trường quan trọng
             verified = all(info.get(k) for k in ["id", "name", "dob"])
             cccd_data = {
                 "id": info['id'],

@@ -46,7 +46,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
     setState(() => _isLoading = true);
     try {
       Map<String, String> params = {
-        "hide_done": (_hideDone ?? true).toString(), // true/false
+        "hide_done": (_hideDone ?? true).toString(),
       };
       if (_selectedStatus != null) {
         params = {"delivery_status": _selectedStatus!};
@@ -72,7 +72,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Đã cập nhật trạng thái thành $status")),
       );
-      _loadOrders(); // Reload orders after update
+      _loadOrders();
     } catch (e) {
       debugPrint("Lỗi cập nhật trạng thái: $e");
       ScaffoldMessenger.of(
@@ -152,7 +152,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
       ),
       body: Column(
         children: [
-          // Bộ lọc trạng thái
+          
           Container(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
             color: Colors.grey.shade100,
@@ -203,7 +203,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
             ),
           ),
 
-          // Thống kê nhanh
+
           if (_myOrders.isNotEmpty && !_isLoading)
             Container(
               padding: const EdgeInsets.all(12),
@@ -335,7 +335,6 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Header với mã đơn hàng và ngày
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
@@ -359,7 +358,6 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
                                 ),
                                 const SizedBox(height: 8),
 
-                                // Thông tin sản phẩm
                                 Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -393,7 +391,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
                                             ),
                                           ),
                                           const SizedBox(height: 4),
-                                          // Thuộc tính sản phẩm
+                                          
                                           if (optionValues.isNotEmpty)
                                             Wrap(
                                               spacing: 4,
@@ -449,7 +447,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
                                 ),
                                 const SizedBox(height: 12),
 
-                                // Thông tin trạng thái
+
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 12,
@@ -490,7 +488,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
                                 ),
                                 const SizedBox(height: 12),
 
-                                // Thông tin khách hàng
+
                                 const Text(
                                   "Thông tin khách hàng:",
                                   style: TextStyle(fontWeight: FontWeight.bold),
@@ -526,7 +524,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
                                 ),
                                 const SizedBox(height: 12),
 
-                                // Thông tin giao hàng
+
                                 const Text(
                                   "Thông tin giao hàng:",
                                   style: TextStyle(fontWeight: FontWeight.bold),
@@ -571,7 +569,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
                                 ),
                                 const SizedBox(height: 12),
 
-                                // Nút cập nhật trạng thái
+
                                 if (nextStatuses.isNotEmpty)
                                   Column(
                                     crossAxisAlignment:

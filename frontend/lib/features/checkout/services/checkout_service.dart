@@ -90,7 +90,7 @@ class CheckoutService {
     if (response.statusCode == 201 || response.statusCode == 200) {
       return json.decode(response.body) as Map<String, dynamic>;
     } else {
-      // decode lỗi server nếu có
+      
       final error = json.decode(response.body);
       throw Exception(
         'Failed to add order: ${response.statusCode}, ${error.toString()}',
@@ -111,7 +111,7 @@ class CheckoutService {
       final data = json.decode(response.body);
       return Rate.fromJson(data['rate']);
     } else {
-      // Lấy message từ response body
+      
       String msg = "Gửi đánh giá thất bại";
       try {
         final data = json.decode(response.body);
@@ -215,10 +215,10 @@ class CheckoutService {
     final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.confirmOrderDetail(id));
     final request = http.MultipartRequest('POST', uri);
 
-    // add headers
+
     request.headers.addAll(header);
 
-    // add image file
+
     request.files.add(await http.MultipartFile.fromPath('image', image.path));
 
     final streamedResponse = await request.send();

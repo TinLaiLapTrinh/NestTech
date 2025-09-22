@@ -7,10 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mb;
 import 'package:url_launcher/url_launcher.dart';
 
-// NOTE: Thêm dependency trong pubspec.yaml:
-// geolocator: ^9.x
-// url_launcher: ^6.x
-// mapbox_maps_flutter: ... (bản bạn đang dùng)
+
 
 class DeliveryDetailScreen extends StatefulWidget {
   final int orderId;
@@ -28,19 +25,19 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
   geo.Position? userPosition;
   mb.Position? startPoint;
   mb.Position? endPoint;
-  double currentSpeed = 0.0; // km/h
+  double currentSpeed = 0.0; 
 
   StreamSubscription<geo.Position>? positionStream;
 
   Map<String, dynamic>? orderDetail;
   bool showMap = false;
 
-  // Route info
+
   List<mb.Position> routeCoordinates = [];
   double? routeDistanceMeters;
   double? routeDurationSeconds;
 
-  // để tránh gọi route quá thường xuyên
+
   mb.Position? lastRouteUpdatePos;
 
   final String accessToken =
@@ -63,10 +60,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
 
   Future<void> _loadRetrieveOrder() async {
     try {
-      // TODO: replace with your real API call
-      // final res = await CheckoutService.orderDetailRetrieve(widget.orderId);
-      // setState(() { orderDetail = res; });
-      // for demo, fake order:
+      
       setState(() {
         orderDetail = {
           "product": {"name": "Điện thoại iPhone 15", "price": 28990000},
@@ -94,7 +88,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
     try {
       bool serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        // bạn có thể show dialog yêu cầu bật GPS
+        
         return;
       }
 
@@ -121,7 +115,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
   void _maybeShowMap() {
     if (!mounted) return;
     if (userPosition != null && orderDetail != null) {
-      // thiết lập endPoint
+      
       final customerLat = orderDetail!['route_info']?['to']?['latitude'];
       final customerLng = orderDetail!['route_info']?['to']?['longitude'];
       if (customerLat != null && customerLng != null) {
@@ -151,9 +145,9 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
           .map((c) => mb.Position(c[0], c[1]))
           .toList();
       final distance = (data['routes'][0]['distance'] as num)
-          .toDouble(); // meters
+          .toDouble(); 
       final duration = (data['routes'][0]['duration'] as num)
-          .toDouble(); // seconds
+          .toDouble(); 
       return {'coords': coords, 'distance': distance, 'duration': duration};
     } else {
       throw Exception("Failed to load route: ${response.statusCode}");
@@ -167,10 +161,10 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
     pointManager = await map.annotations.createPointAnnotationManager();
     polylineManager = await map.annotations.createPolylineAnnotationManager();
 
-    // cập nhật điểm
+
     _updateStartEndPoint();
 
-    // tạo marker khách hàng
+
     if (endPoint != null) {
       await pointManager!.create(
         mb.PointAnnotationOptions(
@@ -184,7 +178,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
       );
     }
 
-    // tạo marker shipper ban đầu
+
     if (startPoint != null) {
       await pointManager!.create(
         mb.PointAnnotationOptions(
@@ -198,7 +192,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
       );
     }
 
-    // Lấy route 1 lần ban đầu (và tính distance/ETA)
+
     if (startPoint != null && endPoint != null) {
       try {
         final routeData = await _fetchRouteFromMapbox(startPoint!, endPoint!);
@@ -214,7 +208,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
           ),
         );
 
-        // Fit camera
+
         final coordinates = [
           mb.Point(coordinates: startPoint!),
           mb.Point(coordinates: endPoint!),
@@ -227,7 +221,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
         );
         await map.setCamera(cameraOptions);
 
-        // lưu vị trí cập nhật route lần cuối
+
         lastRouteUpdatePos = startPoint;
         setState(() {});
       } catch (e) {
@@ -237,7 +231,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
   }
 
   void _startTracking() async {
-    // kiểm permissions
+    
     bool serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) return;
 
@@ -248,7 +242,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
     }
     if (permission == geo.LocationPermission.deniedForever) return;
 
-    // lấy vị trí ban đầu (nếu chưa có)
+
     if (userPosition == null) {
       try {
         userPosition = await geo.Geolocator.getCurrentPosition(
@@ -263,7 +257,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
       }
     }
 
-    // lắng nghe vị trí liên tục
+
     positionStream =
         geo.Geolocator.getPositionStream(
           locationSettings: const geo.LocationSettings(
@@ -275,13 +269,13 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
           currentSpeed = (pos.speed.isFinite ? pos.speed : 0) * 3.6;
           startPoint = mb.Position(pos.longitude, pos.latitude);
 
-          // cập nhật UI
+
           setState(() {});
 
-          // cập nhật marker shipper
+
           if (pointManager != null && startPoint != null) {
             await pointManager!.deleteAll();
-            // recreate customer marker (nếu muốn giữ)
+            
             if (endPoint != null) {
               await pointManager!.create(
                 mb.PointAnnotationOptions(
@@ -306,7 +300,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
             );
           }
 
-          // Cập nhật route nếu shipper di chuyển > 15m so với lastRouteUpdatePos
+
           if (startPoint != null &&
               endPoint != null &&
               polylineManager != null) {
@@ -410,7 +404,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                // Map area (40% height)
+                
                 if (showMap)
                   SizedBox(
                     height: MediaQuery.of(context).size.height * 0.4,
@@ -425,14 +419,13 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
                     child: Center(child: Text("Đang chuẩn bị bản đồ...")),
                   ),
 
-                // Info area
+
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // speed / route summary
                         Wrap(
                           alignment: WrapAlignment.spaceBetween,
                           crossAxisAlignment: WrapCrossAlignment.center,
@@ -476,7 +469,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
 
                         const SizedBox(height: 12),
 
-                        // product info
+
                         if (product != null)
                           Card(
                             child: Padding(
@@ -504,7 +497,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
 
                         const SizedBox(height: 12),
 
-                        // customer info
+
                         Card(
                           child: Padding(
                             padding: const EdgeInsets.all(12),

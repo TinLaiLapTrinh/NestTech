@@ -11,7 +11,7 @@ class ProductModel {
   final String ward;
   final int soldQuantity;
   final OwnerModel owner;
-  final RateModel rate; // 👈 thêm
+  final RateModel rate;
 
   ProductModel({
     required this.id,
@@ -45,7 +45,7 @@ class ProductModel {
       ward: json['ward'],
       soldQuantity: json['sold_quantity'],
       owner: OwnerModel.fromJson(json['owner']),
-      rate: RateModel.fromJson(json['rate'] ?? {}), // 👈 parse object
+      rate: RateModel.fromJson(json['rate'] ?? {}), 
     );
   }
 }

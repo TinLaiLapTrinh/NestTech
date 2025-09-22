@@ -5,7 +5,7 @@ import 'package:frontend/features/checkout/services/checkout_service.dart';
 import 'package:frontend/features/user/provider/user_provider.dart';
 import 'package:provider/provider.dart';
 
-import 'order_form_screen.dart'; // import OrderFormScreen
+import 'order_form_screen.dart'; 
 
 class MyCartItemsScreen extends StatefulWidget {
   const MyCartItemsScreen({super.key});
@@ -31,14 +31,14 @@ class _MyCartItemsScreenState extends State<MyCartItemsScreen> {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
 
     if (!userProvider.isLoggedIn) {
-      // Người dùng chưa đăng nhập
+      
       setState(() {
         _isLoading = false;
       });
       return;
     }
 
-    // Nếu đã đăng nhập, load giỏ hàng
+
     final items = await CheckoutService.getCartItems();
     setState(() {
       _myCartItems = items;
@@ -128,7 +128,7 @@ class _MyCartItemsScreenState extends State<MyCartItemsScreen> {
       );
     }
 
-    // Nếu đã đăng nhập và có sản phẩm trong giỏ
+
     return Scaffold(
       appBar: AppBar(title: const Text("Danh sách sản phẩm")),
       body: Column(

@@ -15,7 +15,7 @@ import os
 import cloudinary
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 from django.templatetags.static import static
 
@@ -23,14 +23,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-# SECURITY WARNING: keep the secret key used in production secret!
+
 SECRET_KEY = 'django-insecure-dm60fy80nxvu0d7q5f(e%kk7bx-src4e+m*z%bc)byh=q9x*38'
 
-# SECURITY WARNING: don't run with debug turned on in production!
+
 DEBUG = True
 
 ALLOWED_HOSTS = [
     "192.168.1.3",
+    "192.168.1.4",
+    "192.168.1.13",
      "localhost",
      "127.0.0.1",
      "10.133.216.48",
@@ -38,7 +40,7 @@ ALLOWED_HOSTS = [
      "10.189.114.149",
      "a5b3c0371cc8.ngrok-free.app",
      "192.168.73.13",
-     "192.168.1.14",
+     "192.168.1.14","10.219.28.13",
 ]
 
 USE_TZ = False
@@ -49,16 +51,16 @@ TIME_ZONE = "Asia/Ho_Chi_Minh"
 
 
 STATICFILES_DIRS = [
-    BASE_DIR / "static",  # nếu có thư mục static trong dự án
+    BASE_DIR / "static", 
 ]
 
-STATIC_ROOT = BASE_DIR / "staticfiles"  # để collectstatic khi deploy
+STATIC_ROOT = BASE_DIR / "staticfiles" 
 
 INSTALLED_APPS = [
     "unfold",
     "unfold.contrib.inlines",
-    "unfold.contrib.filters",  # Bộ lọc nâng cao (không bắt buộc)
-    "unfold.contrib.forms",  # Form nâng cao (không bắt buộc)
+    "unfold.contrib.filters",
+    "unfold.contrib.forms", 
     
     'django.contrib.admin',
     'django.contrib.auth',
@@ -90,7 +92,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 'debug_toolbar.middleware.DebugToolbarMiddleware',
+    
     
 ]
 
@@ -150,9 +152,9 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
      
-INTERNAL_IPS = [ "192.168.1.3","127.0.0.1",
+INTERNAL_IPS = [ "192.168.1.3","192.168.1.13","127.0.0.1","192.168.1.4",
                 "10.133.216.48","10.189.114.102"
-                ,"10.189.114.149","192.168.73.13",
+                ,"10.189.114.149","10.219.28.13",
                 "192.168.1.9"]
 
 
@@ -162,7 +164,7 @@ INTERNAL_IPS = [ "192.168.1.3","127.0.0.1",
 
 LANGUAGE_CODE = 'en-us'
 
-
+FILE_UPLOAD_MAX_MEMORY_SIZE = 52428800
 USE_I18N = True
 
 
@@ -173,7 +175,7 @@ USE_I18N = True
 STATIC_URL = 'static/'
 
 STATICFILES_DIRS = [
-    BASE_DIR / "static",  # Đường dẫn đến thư mục static của dự án
+    BASE_DIR / "static", 
 ]
 
 # Default primary key field type

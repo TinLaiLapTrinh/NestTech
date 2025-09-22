@@ -99,8 +99,13 @@ class ProductViewSet(viewsets.GenericViewSet,
     def list(self, request):
         search = request.query_params.get("search")
         category_id = request.query_params.get("category")
+        min_rate = request.query_params.get("min_rate")
+        max_rate = request.query_params.get("max_rate")
+        min_price = request.query_params.get("min_price")
+        max_price = request.query_params.get("max_price")
 
         queryset = self.get_queryset().select_related('category', 'owner')
+
 
         if search:
             queryset = queryset.filter(
@@ -111,8 +116,40 @@ class ProductViewSet(viewsets.GenericViewSet,
                 Q(owner__last_name__icontains=search)
             )
 
-        if category_id:
+
+        if category_id not in (None, ''):
             queryset = queryset.filter(category_id=category_id)
+
+
+        try:
+            if min_price not in (None, ''):
+                queryset = queryset.filter(min_price__gte=float(min_price))
+        except ValueError:
+            pass
+
+        try:
+            if max_price not in (None, ''):
+                queryset = queryset.filter(max_price__lte=float(max_price))
+        except ValueError:
+            pass
+
+
+        rate_filter_applied = False
+        try:
+            min_rate_val = float(min_rate)
+            rate_filter_applied = True
+        except (ValueError, TypeError):
+            min_rate_val = 0.0
+
+        try:
+            max_rate_val = float(max_rate)
+            rate_filter_applied = True
+        except (ValueError, TypeError):
+            max_rate_val = 5.0
+
+        if rate_filter_applied:
+            queryset = queryset.filter(rate_avg__gte=min_rate_val, rate_avg__lte=max_rate_val)
+
 
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -121,17 +158,20 @@ class ProductViewSet(viewsets.GenericViewSet,
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-    
+
     def create(self, request):
         print(request.data)
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            # print(serializer.data)
+            
             product = serializer.save()
             return Response(    
                 {"message": "Product created successfully!", "product_id": product.id},
                 status=status.HTTP_201_CREATED
             )
+        
+        if not serializer.is_valid():
+            print(serializer.errors)  
         
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
     
@@ -227,7 +267,7 @@ class ProductViewSet(viewsets.GenericViewSet,
     def get_options(self, request, pk=None):
         product = self.get_object()
         
-        options = product.product_options.all()  # giả sử Product có quan hệ ManyToMany đến ProductOption
+        options = product.product_options.all() 
         serializer = ProductOptionSerializer(options, many=True)
         
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -270,7 +310,7 @@ class ProductViewSet(viewsets.GenericViewSet,
         product = self.get_object()
 
 
-        rates = product.rates.select_related("owner", "order_detail").all()
+        rates = product.rates.select_related("owner", "order_detail").filter(is_spam=False)
 
 
         page = self.paginate_queryset(rates)
@@ -307,7 +347,7 @@ class ProductVariantViewSet(viewsets.GenericViewSet,
             return ProductVariantUpdateSerializer
 
     def update(self, request, *args, **kwargs):
-        # request.data đã chứa dữ liệu từ form data
+        
         response = super().update(request, *args, **kwargs)
         return Response({
             "message": "Product variant updated successfully!",

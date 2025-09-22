@@ -7,12 +7,12 @@ import 'package:provider/provider.dart';
 import 'features/user/provider/user_provider.dart';
 import 'screens/home_screen.dart';
 
-// 1️⃣ Background message handler
+
 Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   print("Handling background message: ${message.messageId}");
 
-  // Hiển thị notification cho background/data-only messages
+
   RemoteNotification? notification = message.notification;
   AndroidNotification? android = message.notification?.android;
   
@@ -36,14 +36,14 @@ Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
   }
 }
 
-// 2️⃣ Local notifications plugin
+
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
-// 3️⃣ Notification channel Android
+
 const AndroidNotificationChannel channel = AndroidNotificationChannel(
-  'order_channel', // ID
-  'Order Notifications', // Name
+  'order_channel',
+  'Order Notifications', 
   description: 'Channel for order status notifications',
   importance: Importance.max,
 );
@@ -52,20 +52,20 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
-  // Tạo notification channel Android
+
   await flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(channel);
 
-  // Khởi tạo local notifications
+
   const AndroidInitializationSettings initializationSettingsAndroid =
       AndroidInitializationSettings('@mipmap/ic_launcher');
   const InitializationSettings initializationSettings =
       InitializationSettings(android: initializationSettingsAndroid);
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   
-  // Bắt background messages
+  
   FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundHandler);
 
   runApp(

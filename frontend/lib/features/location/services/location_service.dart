@@ -217,13 +217,13 @@ class LocationService {
     bool serviceEnabled;
     geo.LocationPermission permission;
 
-    // Kiểm tra service GPS
+
     serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       throw Exception('GPS chưa bật');
     }
 
-    // Kiểm tra quyền
+
     permission = await geo.Geolocator.checkPermission();
     if (permission == geo.LocationPermission.denied) {
       permission = await geo.Geolocator.requestPermission();
@@ -236,7 +236,7 @@ class LocationService {
       throw Exception('Quyền truy cập vị trí bị chặn vĩnh viễn');
     }
 
-    // Lấy vị trí
+
     return await geo.Geolocator.getCurrentPosition(
       desiredAccuracy: geo.LocationAccuracy.high,
     );

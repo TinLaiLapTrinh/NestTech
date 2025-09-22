@@ -22,7 +22,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   int _quantity = 1;
   List<Rate> rates = [];
   int _currentImageIndex = 0;
-  Map<String, String?> selectedOptions = {}; // Lưu lựa chọn
+  Map<String, String?> selectedOptions = {}; 
 
   @override
   void initState() {
@@ -33,9 +33,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   Future<void> _fetchRate(int id) async {
     try {
-      final res = await ProductService.getRate(id); // res là List<Rate>
+      final res = await ProductService.getRate(id); 
       setState(() {
-        rates = res; // rates nên khai báo là List<Rate>
+        rates = res; 
       });
     } catch (e) {
       print("Lỗi khi lấy rate: $e");
@@ -58,7 +58,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return null;
   }
 
-  /// Lấy thumbnail variant / fallback product
+
   String getThumbnail(ProductVariant variant, ProductDetailModel product) {
     if (variant.product?.image.isNotEmpty == true) {
       return variant.product!.image;
@@ -91,7 +91,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Ảnh sản phẩm
+                  
                   if (product.images.isNotEmpty)
                     Column(
                       children: [
@@ -150,7 +150,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ],
                     ),
 
-                  // Tên + giá
+
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -206,7 +206,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                         const SizedBox(height: 8),
 
-                        // Mô tả ngắn
+
                         Text(
                           product.description.isNotEmpty
                               ? product.description
@@ -216,7 +216,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                         const SizedBox(height: 12),
 
-                        // Mô tả chi tiết
+
                         if (product.descriptions.isNotEmpty) ...[
                           const Text(
                             "Chi tiết:",
@@ -255,7 +255,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
 
                   const Divider(),
-                  // Tuỳ chọn
+                  
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Column(
@@ -349,15 +349,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 ? null
                                 : () async {
                                     try {
-                                      // Thêm vào giỏ
+                                      
                                       await CheckoutService.addToCart(
                                         matchedVariant.id,
                                         _quantity,
                                       );
 
                                       if (!mounted) return;
-
-                                      // Option description
+                                      
                                       final optionDesc = matchedVariant
                                           .optionValues
                                           .map(
@@ -366,13 +365,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                           )
                                           .join(", ");
 
-                                      // Thumbnail
+
                                       final thumbnail = getThumbnail(
                                         matchedVariant,
                                         product,
                                       );
 
-                                      // Hiển thị Bottom Sheet
+
                                       showModalBottomSheet(
                                         context: context,
                                         shape: const RoundedRectangleBorder(
@@ -477,7 +476,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ),
                     child: Row(
                       children: [
-                        // Avatar shop
+                        
                         CircleAvatar(
                           radius: 24,
                           backgroundImage: product.owner.avatar != null
@@ -488,7 +487,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                         const SizedBox(width: 12),
 
-                        // Tên shop + status
+
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -512,7 +511,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ),
                         ),
 
-                        // Nút hành động
+
                         Row(
                           children: [
                             TextButton(
@@ -531,7 +530,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             const SizedBox(width: 8),
                             OutlinedButton(
                               onPressed: () {
-                                // TODO: mở chat với shop
+                                
                               },
                               child: const Text("Chat"),
                             ),

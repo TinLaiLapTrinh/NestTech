@@ -61,7 +61,7 @@ class UserAdmin(ModelAdmin):
 
 class SupplierApprovedAdmin(UserAdmin):
     """
-    Trang quản lý phê duyệt chủ trọ
+    Trang quản lý phê duyệt nhà cung cấp
     """
     list_display = ["username", "email", "product_name", "action_buttons"]
     actions = ["approve_user", "reject_user"]
@@ -71,7 +71,7 @@ class SupplierApprovedAdmin(UserAdmin):
 
     fieldsets = [
         ("User profile", {"fields": ["username", "email", "avatar_view"]}),
-        # ("Location", {"fields": ["address", "province"]}),
+        
         (
             "Product Details",
             {"fields": ["product_name", "product_address", "product_image_gallery"]},
@@ -180,7 +180,6 @@ class SupplierApprovedAdmin(UserAdmin):
         return super().change_view(request, object_id, form_url, extra_context)
 
 
-    ### XOÁ CÁC CHỨC NĂNG: THÊM, XOÁ, SỬA TÀI KHOẢN ĐANG DUYỆT ###
     def has_add_permission(self, request):
         return False
 

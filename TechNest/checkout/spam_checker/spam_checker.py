@@ -56,11 +56,11 @@ def check_spam(comments):
 
     preds_task2 = predict_comments(
         comments,
-        model_name="NlpHUST/vibert4news-base-cased",
-        tokenizer_class=BertTokenizer,
+        model_name="vinai/phobert-base",
+        tokenizer_class=AutoTokenizer,
         num_labels=4,
         labels=labels_task_2,
-        model_dir_name="bert4news_task_2"
+        model_dir_name="phobert_task_2"
     )
 
     for i, c in enumerate(comments):

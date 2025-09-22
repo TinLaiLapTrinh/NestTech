@@ -43,7 +43,7 @@ class UserSerializer(serializers.ModelSerializer):
         if obj.user_type == UserType.SUPPLIER:
             latest_log = AuditLog.objects.filter(user=obj).order_by("-timestamp").first()
             return latest_log.verified if latest_log else False
-        return None  # khách hàng không cần hiện
+        return None 
 
 
 

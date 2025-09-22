@@ -11,6 +11,7 @@ import 'package:frontend/features/product/screens/my_product_screen.dart';
 import 'package:frontend/features/product/screens/product_list_screen.dart';
 import 'package:frontend/features/shared/widgets/app_footer.dart';
 import 'package:frontend/features/stats/screens/stats_screen.dart';
+import 'package:frontend/features/stats/screens/stats_supplier.dart';
 import 'package:frontend/features/user/screens/profile_screen.dart';
 import 'package:frontend/features/user/services/user_service.dart';
 import 'package:provider/provider.dart';
@@ -69,9 +70,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final isLoggedIn = userProvider.currentUser != null;
     final role = userProvider.currentUser?.userType ?? "customer";
 
-    // Pages theo role
+
     final supplierPages = [
       const ProductListScreen(),
+      const StatsSupplierScreen(),
       const MyProductListScreen(),
       const OrderRequestScreen(),
       const ProfileScreen(),
@@ -104,14 +106,14 @@ class _HomeScreenState extends State<HomeScreen> {
         const LoginScreen(),
     ];
 
-    // Chọn pages theo role
+
     final pages = role == "supplier"
         ? supplierPages
         : role == "delivery_person"
             ? deliveryPages
             : customerPages;
 
-    // Bảo vệ _currentIndex luôn hợp lệ
+
     final currentPage =
         (_currentIndex < pages.length) ? pages[_currentIndex] : pages[0];
 

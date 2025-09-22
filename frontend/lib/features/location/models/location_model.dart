@@ -5,13 +5,13 @@ class Province {
   final String code;
   final String name;
   final String fullName;
-  final int? administrativeRegion; // nullable
+  final int? administrativeRegion;
 
   Province({
     required this.code,
     required this.name,
     required this.fullName,
-    this.administrativeRegion, // không bắt buộc
+    this.administrativeRegion,
   });
 
   factory Province.fromJson(Map<String, dynamic> json) {
@@ -131,8 +131,8 @@ class SelectedLocationResult {
 
 class RouteInfo {
   final List<Position> route;
-  final double distance; // meters
-  final double duration; // seconds
+  final double distance;
+  final double duration;
 
   RouteInfo({
     required this.route,

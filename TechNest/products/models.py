@@ -43,16 +43,7 @@ class Product(BaseModel):
     address = models.CharField(max_length=256, null=True)
     is_deleted = models.BooleanField(default=False)
 
-    # def save(self, *args, **kwargs):
-    #     is_new = self.pk is None
-    #     super().save(*args, **kwargs)
-    #     if is_new and self.min_price is not None:
-    #         ProductVariant.objects.create(
-    #             product=self,
-    #             price=self.min_price,
-    #             stock=0,  
-    #             sku=f"{self.id}-{int(self.min_price)}" 
-    #         )
+   
 
 class Descriptions(models.Model):
     title = models.CharField(max_length=55, null=False)

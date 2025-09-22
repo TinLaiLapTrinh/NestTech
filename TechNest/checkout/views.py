@@ -201,26 +201,21 @@ class OrderDetailViewSet(viewsets.GenericViewSet,mixins.RetrieveModelMixin, mixi
         delivery_status = request.query_params.get("delivery_status")
         hide_done = request.query_params.get("hide_done")
 
-        # Chuyển hide_done thành boolean
+
         if hide_done is not None:
             hide_done = hide_done.lower() == "true"
 
-        # Lấy queryset cơ bản và select_related để tránh N+1 query
         queryset = self.get_queryset().select_related('product', 'order')
 
-        # Loại bỏ các đơn đã giao hoặc đã huỷ nếu hide_done = True
         if hide_done:
             queryset = queryset.exclude(delivery_status__in=["delivered", "cancelled"])
 
-        # Lọc theo trạng thái nếu có
         if delivery_status:
             queryset = queryset.filter(delivery_status=delivery_status)
 
-        # Lọc theo từ khóa search nếu có
         if search:
             queryset = queryset.filter(product__product__name__icontains=search)
 
-        # Phân trang
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -276,7 +271,7 @@ class OrderDetailViewSet(viewsets.GenericViewSet,mixins.RetrieveModelMixin, mixi
         )
 
         try:
-            results = check_spam([rate.content])   # lấy nội dung đánh giá để check
+            results = check_spam([rate.content])  
             task1_label = results[rate.content]["task1"]
             task2_label = results[rate.content]["task2"]
 
@@ -286,11 +281,11 @@ class OrderDetailViewSet(viewsets.GenericViewSet,mixins.RetrieveModelMixin, mixi
             print(f"Đánh giá rating là:{is_spam}")
             rate.save(update_fields=["is_spam"])
         except Exception as e:
-            # Nếu có lỗi khi check spam, mặc định không đánh dấu spam
+            
             print("Spam checker error:", str(e))
             rate.is_spam = False
             rate.save(update_fields=["is_spam"])
-        # ================================================
+            
 
         return Response(
             {
@@ -358,7 +353,7 @@ class OrderViewSet(viewsets.GenericViewSet,
                 pay_url = None
                 qr_code_base64 = None
         else:
-            # COD thì tự động thành công
+            
             order.payment_status = "paid"
             order.save()
             momo_response = {}
@@ -421,12 +416,12 @@ def momo_ipn(request):
     result_code = data.get("resultCode")
 
     try:
-        real_order_id = order_id.split("_")[0]  # lấy id gốc từ orderId
+        real_order_id = order_id.split("_")[0]  
         order = Order.objects.get(id=real_order_id)
     except Order.DoesNotExist:
         return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    if result_code == 0:  # thanh toán thành công
+    if result_code == 0: 
         order.payment_status = PaymentStatus.PAID
         order.save()
     else:

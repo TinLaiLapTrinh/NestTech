@@ -19,14 +19,14 @@ class CreateProductScreen extends StatefulWidget {
 class _CreateProductScreenState extends State<CreateProductScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controllers
+
   final nameCtrl = TextEditingController();
   final descCtrl = TextEditingController();
   final minPriceCtrl = TextEditingController();
   final maxPriceCtrl = TextEditingController();
   final addressCtrl = TextEditingController();
 
-  // Location
+
   List<Province> _provinces = [];
   List<District> _districts = [];
   List<Ward> _wards = [];
@@ -34,14 +34,13 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
   District? _selectedDistrict;
   Ward? _selectedWard;
 
-  // Category
+
   List<CategoryModel> _categories = [];
   CategoryModel? _selectedCategory;
 
-  // Descriptions động
   List<DescriptionItem> descriptions = [];
 
-  // Images
+
   List<File> selectedImages = [];
 
   @override
@@ -51,11 +50,11 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
     _loadProvinces();
   }
 
-  // ========== Descriptions ==========
+
  void _addDescription() {
   setState(() {
     descriptions.add(DescriptionItem(
-      title: "Thông tin sản phẩm", // Giá trị mặc định thay vì rỗng
+      title: "Thông tin sản phẩm", 
       content: "Mô tả chi tiết",
     ));
   });
@@ -145,7 +144,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
     ],
   );
 }
-  // ========== Load dữ liệu ==========
+
   Future<void> _loadCategories() async {
     try {
       final cats = await ProductService.getCategory();
@@ -182,7 +181,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
     }
   }
 
-  // ========== Location Selector ==========
+
   Widget _buildProvinceSelector() {
     return _buildSelector(
       label: "Tỉnh/Thành phố",
@@ -281,7 +280,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
     );
   }
 
-  // ========== Image Picker ==========
+
   Future<void> _pickImages() async {
     final picker = ImagePicker();
     final pickedFiles = await picker.pickMultiImage();
@@ -292,9 +291,9 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
     }
   }
 
-  // ========== Submit ==========
+
   Future<void> _submit() async {
-  // Kiểm tra descriptions có hợp lệ không
+    
   final invalidDescriptions = descriptions.where((desc) => !desc.isValid).toList();
   
   if (invalidDescriptions.isNotEmpty) {
@@ -342,7 +341,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
   }
 }
 
-  // ========== UI ==========
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

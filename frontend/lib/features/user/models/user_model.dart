@@ -6,7 +6,7 @@ class UserModel {
   final String? dob;
   final String email;
   final String? address;
-  final String? avatar; // URL của ảnh
+  final String? avatar; 
   final String? phoneNumber;
   final String? userType;
   bool? isVerified; 

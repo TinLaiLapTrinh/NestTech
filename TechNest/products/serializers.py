@@ -61,7 +61,7 @@ class ProductSerializer(serializers.ModelSerializer):
         raw = data.get("description_product")
 
         if raw is not None:
-            # Case 1: Postman gửi chuỗi JSON (form-data)
+            
             if isinstance(raw, str):
                 try:
                     parsed = json.loads(raw)
@@ -75,7 +75,7 @@ class ProductSerializer(serializers.ModelSerializer):
                         "description_product": "Không phải JSON hợp lệ"
                     })
 
-            # Case 2: Flutter gửi JSON chuẩn (list object)
+
             elif isinstance(raw, list):
                 self._description_product_data = raw
 
@@ -84,7 +84,7 @@ class ProductSerializer(serializers.ModelSerializer):
                     "description_product": "Kiểu dữ liệu không hợp lệ"
                 })
 
-            # Xóa để không đụng field mặc định
+
             del data["description_product"]
         else:
             self._description_product_data = []
@@ -122,7 +122,7 @@ class ProductSerializer(serializers.ModelSerializer):
         
         data['description_product'] = description_product
 
-        # ... các validation khác giữ nguyên ...
+
         ward_located = Ward.objects.filter(code=getattr(ward, 'code', None)).select_related("district__province").first() if ward else None
         district_located = District.objects.filter(code=getattr(district, 'code', None)).select_related("province").first() if district else None
 
@@ -183,7 +183,7 @@ class ProductSerializer(serializers.ModelSerializer):
                 content=desc['content'].strip()
             )
 
-        # Tạo images
+
         for image_file in upload_images:
             ProductImage.objects.create(
                 image=image_file,
@@ -226,7 +226,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "id", "name", "status", "owner", "description", "category",
             "min_price", "max_price", "images", "upload_images", "province",
             "district", "ward", "active", "descriptions"
-            # LOẠI BỎ description_product khỏi fields
+            
         ]
         extra_kwargs = {
             'owner': {'read_only': True}, 
@@ -592,8 +592,8 @@ class ProductListSerializer(serializers.ModelSerializer):
             data["ward"] = instance.ward.full_name
 
         data["rate"] = {
-            "quantity": getattr(instance, "rate_count", 0),
-            "avg": getattr(instance, "rate_avg", 0.0),
+            "quantity": getattr(instance, "rate_count", 0) or 0,
+            "avg": round(getattr(instance, "rate_avg", 0.0) or 0.0, 1), 
         }
         data.pop("rate_count", None)
         data.pop("rate_avg", None)
@@ -607,6 +607,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             "rate_count",
             "rate_avg"
         ]
+
 
 class ProductVariantGetComponentSerializer(serializers.ModelSerializer):
     option_values = serializers.SerializerMethodField()

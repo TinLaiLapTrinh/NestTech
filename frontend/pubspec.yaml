@@ -60,6 +60,7 @@ dependencies:
   turf: ^0.0.10
   geolocator: ^14.0.2
   url_launcher: ^6.2.10
+  fl_chart: ^0.69.0
   
 
 

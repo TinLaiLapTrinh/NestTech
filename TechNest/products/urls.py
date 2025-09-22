@@ -1,13 +1,13 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-# from rest_framework_nested import routers
+
 from . import views
 router = DefaultRouter()
 
 
 router.register("products", views.ProductViewSet, basename="product")
 router.register("category", views.CategoryViewSet, basename="category")
-# router.register("variant", views.ProductVariantViewSet, basename="product-variant")
+
 
 
 urlpatterns = [

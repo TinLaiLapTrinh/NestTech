@@ -146,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   : const Text("Đăng nhập"),
             ),
             const SizedBox(height: 15),
-            // Nút chuyển sang đăng ký
+            
             TextButton(
               onPressed: _navigateToRegister,
               child: const Text(

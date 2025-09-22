@@ -16,9 +16,6 @@ class ShoppingCartItem(BaseModel):
         unique_together = ('shopping_cart', 'product')
 
 
-
-
-
 class Order(BaseModel):
     total = models.DecimalField(max_digits=12, decimal_places=2, null=True)
     owner = models.ForeignKey("accounts.User", related_name="orders",null=True,blank=True,on_delete=models.SET_NULL,limit_choices_to={'user_type':UserType.CUSTOMER})
@@ -42,7 +39,7 @@ class Order(BaseModel):
             address = f"{self.address}, {self.ward}, {self.province}, Việt Nam"
             self.latitude, self.longitude = get_coordinates(address)
 
-        # Cập nhật toạ độ khi địa chỉ thay đổi
+
         if self.pk:
             old_property = Order.objects.get(pk=self.pk)
             if (

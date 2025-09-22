@@ -13,9 +13,9 @@ class _SafeFrameWidgetState extends State<SafeFrameWidget> {
   @override
   void initState() {
     super.initState();
-    // Ignore frame timing assertions in debug mode
+    
     WidgetsBinding.instance.addTimingsCallback((timings) {
-      // ❌ Chỉ debug: bỏ qua các frame spam
+      
     });
   }
 

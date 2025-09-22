@@ -10,8 +10,7 @@ import 'package:frontend/features/location/services/location_service.dart';
 import 'package:http/http.dart' as http;
 
 class OrderFormScreen extends StatefulWidget {
-  final List<Map<String, dynamic>> orderItems; // từ MyCartItemsScreen
-
+  final List<Map<String, dynamic>> orderItems;
   const OrderFormScreen({super.key, required this.orderItems});
 
   @override
@@ -24,7 +23,6 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
   List<Map<String, dynamic>> shippingRates = [];
   bool _isLoading = true;
 
-  // 👇 thêm payment method
   String _selectedPaymentMethod = "COD";
 
   @override
@@ -122,7 +120,7 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
       );
       return;
     }
-    // check delivery method
+    
     for (var item in widget.orderItems) {
       if (item["delivery_method"] == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -150,13 +148,13 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
       "latitude": _selectedLocation!.latitude,
       "longitude": _selectedLocation!.longitude,
       "order_details": orderDetails,
-      "payment_method": _selectedPaymentMethod, // đã chuẩn value
+      "payment_method": _selectedPaymentMethod, 
     };
 
     try {
       final res = await CheckoutService.addOrder(payload);
 
-      // MOMO flow
+
       if (res.containsKey("payUrl") && res["payUrl"] != null) {
         final payUrl = res["payUrl"];
         if (!mounted) return;
@@ -169,7 +167,7 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
           ),
         );
       }
-      // COD flow
+      
       else if (res.containsKey("order_id")) {
         if (!mounted) return;
         ScaffoldMessenger.of(
@@ -177,7 +175,7 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
         ).showSnackBar(const SnackBar(content: Text("Đặt hàng thành công!")));
         Navigator.pop(context, true);
       }
-      // lỗi
+      
       else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -204,7 +202,7 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // chọn địa chỉ
+            
             const Align(
               alignment: Alignment.centerLeft,
               child: Text("Chọn địa chỉ giao hàng:"),
@@ -261,7 +259,7 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
 
             const SizedBox(height: 16),
 
-            // SĐT
+
             TextField(
               controller: _receivePhoneNumber,
               decoration: const InputDecoration(
@@ -272,7 +270,7 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            // phương thức thanh toán
+
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -299,7 +297,7 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
 
             const SizedBox(height: 16),
 
-            // danh sách sản phẩm
+
             Expanded(
               child: ListView.builder(
                 itemCount: widget.orderItems.length,

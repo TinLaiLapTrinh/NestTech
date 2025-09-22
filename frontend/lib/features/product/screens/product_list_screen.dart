@@ -24,6 +24,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
   int _currentPage = 1;
   bool _isLoading = false;
   bool _hasMore = true;
+  double? _minPrice;
+  double? _maxPrice;
   bool _scrollThrottled = false;
   List<CategoryModel> _categories = [];
 
@@ -122,11 +124,19 @@ class _ProductListScreenState extends State<ProductListScreen> {
               const Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
-                  "Chọn danh mục",
+                  "Bộ lọc sản phẩm",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
               const Divider(),
+              
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  "Danh mục",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+              ),
               Expanded(
                 child: ListView.builder(
                   itemCount: _categories.length,
@@ -135,17 +145,182 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     return ListTile(
                       title: Text(cat.type),
                       onTap: () {
-                        _onFilterChanged({"category": cat.id.toString()});
+                        _onFilterChanged({
+                          "category": cat.id.toString(),
+                          "search": _filters["search"] ?? "",
+                          "min_price": _minPrice?.toString() ?? "",
+                          "max_price": _maxPrice?.toString() ?? "",
+                          "min_rate": _filters["min_rate"] ?? "",
+                          "max_rate": _filters["max_rate"] ?? "",
+                        });
                         Navigator.pop(context);
                       },
                     );
                   },
                 ),
               ),
+              const Divider(),
+              
+              ListTile(
+                leading: const Icon(Icons.attach_money),
+                title: const Text("Lọc theo giá"),
+                onTap: () async {
+                  final range = await showDialog<Map<String, double>>(
+                    context: context,
+                    builder: (context) {
+                      double minTemp = _minPrice ?? 0;
+                      double maxTemp = _maxPrice ?? 10000000;
+                      return AlertDialog(
+                        title: const Text("Chọn khoảng giá"),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TextField(
+                              decoration: const InputDecoration(
+                                labelText: "Giá thấp nhất",
+                              ),
+                              keyboardType: TextInputType.number,
+                              onChanged: (v) =>
+                                  minTemp = double.tryParse(v) ?? 0,
+                            ),
+                            TextField(
+                              decoration: const InputDecoration(
+                                labelText: "Giá cao nhất",
+                              ),
+                              keyboardType: TextInputType.number,
+                              onChanged: (v) =>
+                                  maxTemp = double.tryParse(v) ?? 0,
+                            ),
+                          ],
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text("Hủy"),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, {
+                              "min_price": minTemp,
+                              "max_price": maxTemp,
+                            }),
+                            child: const Text("Áp dụng"),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+
+                  if (range != null) {
+                    setState(() {
+                      _minPrice = range["min_price"];
+                      _maxPrice = range["max_price"];
+                    });
+                    _onFilterChanged({
+                      "category": _filters["category"] ?? "",
+                      "search": _filters["search"] ?? "",
+                      "min_price": _minPrice.toString(),
+                      "max_price": _maxPrice.toString(),
+                      "min_rate": _filters["min_rate"] ?? "",
+                      "max_rate": _filters["max_rate"] ?? "",
+                    });
+                    Navigator.pop(context);
+                  }
+                },
+              ),
+              
+              ListTile(
+                leading: const Icon(Icons.star_rate),
+                title: const Text("Lọc theo đánh giá"),
+                onTap: () async {
+                  double minTemp = _filters["min_rate"] != null
+                      ? double.tryParse(_filters["min_rate"]!) ?? 0
+                      : 0;
+                  double maxTemp = _filters["max_rate"] != null
+                      ? double.tryParse(_filters["max_rate"]!) ?? 5
+                      : 5;
+
+                  final result = await showDialog<Map<String, double>>(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: const Text("Chọn khoảng sao"),
+                        content: StatefulBuilder(
+                          builder: (context, setState) {
+                            return Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text("Sao tối thiểu:"),
+                                RatingBar.builder(
+                                  initialRating: minTemp,
+                                  minRating: 0,
+                                  maxRating: 5,
+                                  allowHalfRating: true,
+                                  itemSize: 30,
+                                  itemCount: 5,
+                                  itemBuilder: (context, _) => const Icon(
+                                    Icons.star,
+                                    color: Colors.amber,
+                                  ),
+                                  onRatingUpdate: (rating) {
+                                    setState(() => minTemp = rating);
+                                  },
+                                ),
+                                const SizedBox(height: 12),
+                                Text("Sao tối đa:"),
+                                RatingBar.builder(
+                                  initialRating: maxTemp,
+                                  minRating: 0,
+                                  maxRating: 5,
+                                  allowHalfRating: true,
+                                  itemSize: 30,
+                                  itemCount: 5,
+                                  itemBuilder: (context, _) => const Icon(
+                                    Icons.star,
+                                    color: Colors.amber,
+                                  ),
+                                  onRatingUpdate: (rating) {
+                                    setState(() => maxTemp = rating);
+                                  },
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text("Hủy"),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, {
+                              "min_rate": minTemp,
+                              "max_rate": maxTemp,
+                            }),
+                            child: const Text("Áp dụng"),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+
+                  if (result != null) {
+                    _onFilterChanged({
+                      "category": _filters["category"] ?? "",
+                      "search": _filters["search"] ?? "",
+                      "min_price": _filters["min_price"] ?? "",
+                      "max_price": _filters["max_price"] ?? "",
+                      "min_rate": result["min_rate"].toString(),
+                      "max_rate": result["max_rate"].toString(),
+                    });
+                    Navigator.pop(context);
+                  }
+                },
+              ),
             ],
           ),
         ),
       ),
+
       body: Column(
         children: [
           SearchAndFilterHeader(onFilterChanged: _onFilterChanged),
@@ -192,97 +367,97 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   Widget _buildProductCard(ProductModel product) {
-  return InkWell(
-    onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ProductDetailScreen(productId: product.id),
-        ),
-      );
-    },
-    child: Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AspectRatio(
-            aspectRatio: 1,
-            child: product.images.isNotEmpty
-                ? Image.network(product.images[0].image, fit: BoxFit.cover)
-                : Container(
-                    color: Colors.grey[200],
-                    child: const Icon(Icons.image_not_supported, size: 40),
-                  ),
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailScreen(productId: product.id),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  product.minPrice == product.maxPrice
-                      ? "${_formatter.format(product.minPrice)} đ"
-                      : "${_formatter.format(product.minPrice)} - ${_formatter.format(product.maxPrice)} đ",
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.redAccent,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  product.soldQuantity == 0
-                      ? "Chưa có đơn hàng"
-                      : "Đã bán ${product.soldQuantity}",
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "${product.ward}, ${product.province}",
-                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    RatingBarIndicator(
-                      rating: product.rate.avg,
-                      itemBuilder: (context, index) =>
-                          const Icon(Icons.star, color: Colors.amber),
-                      itemCount: 5,
-                      itemSize: 16.0,
-                      direction: Axis.horizontal,
+        );
+      },
+      child: Card(
+        elevation: 3,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AspectRatio(
+              aspectRatio: 1,
+              child: product.images.isNotEmpty
+                  ? Image.network(product.images[0].image, fit: BoxFit.cover)
+                  : Container(
+                      color: Colors.grey[200],
+                      child: const Icon(Icons.image_not_supported, size: 40),
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      "(${product.rate.quantity})",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    product.minPrice == product.maxPrice
+                        ? "${_formatter.format(product.minPrice)} đ"
+                        : "${_formatter.format(product.minPrice)} - ${_formatter.format(product.maxPrice)} đ",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.redAccent,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    product.soldQuantity == 0
+                        ? "Chưa có đơn hàng"
+                        : "Đã bán ${product.soldQuantity}",
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "${product.ward}, ${product.province}",
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      RatingBarIndicator(
+                        rating: product.rate.avg,
+                        itemBuilder: (context, index) =>
+                            const Icon(Icons.star, color: Colors.amber),
+                        itemCount: 5,
+                        itemSize: 16.0,
+                        direction: Axis.horizontal,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        "(${product.rate.quantity})",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 class SearchAndFilterHeader extends StatefulWidget {
@@ -320,6 +495,15 @@ class _SearchAndFilterHeaderState extends State<SearchAndFilterHeader> {
               ),
               onSubmitted: (_) => _applyFilters(),
             ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.clear),
+            tooltip: "Xoá bộ lọc",
+            onPressed: () {
+              _searchController.clear();
+              widget.onFilterChanged({});
+            },
           ),
         ],
       ),

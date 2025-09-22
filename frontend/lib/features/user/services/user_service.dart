@@ -68,10 +68,10 @@ class UserService {
     final response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      return true; // thành công
+      return true;
     } else {
       debugPrint("Đăng ký supplier thất bại: ${response.body}");
-      return false; // thất bại
+      return false; 
     }
   }
 
@@ -143,7 +143,7 @@ class UserService {
     }
   }
 
-  /// Lấy danh sách followings của user hiện tại
+
   static Future<List<UserModel>> getFollowings() async {
     final headers = await ApiHeaders.getAuthHeaders(); 
     final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.followings);
@@ -160,7 +160,7 @@ class UserService {
     }
   }
 
-  /// Hủy follow user có id
+
   static Future<bool> unFollow(int id) async {
     final headers = await ApiHeaders.getAuthHeaders(); 
     final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.unFollow(id));
@@ -185,7 +185,7 @@ class UserService {
     }
   }
 
-  /// Kiểm tra có đang follow user hay không
+
   static Future<bool> isFollowing(int id) async {
     final headers = await ApiHeaders.getAuthHeaders(); 
     final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.isFollowing(id));

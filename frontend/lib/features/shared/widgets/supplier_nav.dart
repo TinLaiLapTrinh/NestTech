@@ -17,8 +17,8 @@ class _SupplierNavState extends State<SupplierNav> {
   Widget build(BuildContext context) {
     final screens = [
       const ProductListScreen(),
-      const MyProductListScreen(), // mặc định trang sản phẩm
-      const ProfileScreen(),     // mặc định tài khoản supplier
+      const MyProductListScreen(),
+      const ProfileScreen(),   
     ];
 
     return Scaffold(

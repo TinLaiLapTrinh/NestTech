@@ -83,19 +83,19 @@ class _VariantListPageState extends State<VariantListPage> {
                 
                 try {
                   await ProductService.updateVariant(
-                    widget.productId, // dùng productId từ widget
+                    widget.productId, 
                     variant.id,
                     stock,
                     price,
                   );
 
-                  // Cập nhật local state luôn
+
                   setState(() {
                     variant.price = price.toDouble();
                     variant.stock = stock;
                   });
 
-                  Navigator.pop(context); // đóng popup
+                  Navigator.pop(context); 
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Cập nhật thành công")),
                   );

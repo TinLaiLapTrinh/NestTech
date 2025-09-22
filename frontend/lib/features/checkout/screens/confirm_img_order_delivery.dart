@@ -36,7 +36,7 @@ class _ConfirmDeliveryScreenState extends State<ConfirmDeliveryScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // 1. Upload ảnh xác nhận
+      
       await CheckoutService.orderConfirmImage(widget.orderDetailId, _image!);
       
       await CheckoutService.orderRequestUpdate(

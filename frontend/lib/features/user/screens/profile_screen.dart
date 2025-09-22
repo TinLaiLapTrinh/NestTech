@@ -94,7 +94,7 @@ class ProfileScreen extends StatelessWidget {
                     style: const TextStyle(fontSize: 16),
                   ),
 
-                  // 🔑 Supplier cần xác minh
+
                   if (user.userType == "supplier") ...[
                     const Divider(),
                     Text(

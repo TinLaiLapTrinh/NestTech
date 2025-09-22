@@ -21,6 +21,7 @@ class AppFooter extends StatelessWidget {
     if (role == "supplier") {
       items = const [
         BottomNavigationBarItem(icon: Icon(Icons.store), label: "Sản phẩm"),
+         BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Thống kê"),
         BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: "Sản phẩm của tôi"),
         BottomNavigationBarItem(icon: Icon(Icons.assignment), label: "Đơn hàng"),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: "Tài khoản"),
@@ -35,7 +36,7 @@ class AppFooter extends StatelessWidget {
         BottomNavigationBarItem(icon: Icon(Icons.logout), label: "Đăng xuất"),
       ];
     } else {
-      // customer
+      
       items = const [
         BottomNavigationBarItem(icon: Icon(Icons.store), label: "Sản phẩm"),
         BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Giỏ hàng"),

@@ -41,7 +41,7 @@ class ProductApproved(ModelAdmin):
 
     def description_list(self, product: Product):
         """Hiển thị description_product dạng HTML đẹp"""
-        descriptions = product.descriptions.all()  # <<--- thêm .all()
+        descriptions = product.descriptions.all()  
         if not descriptions.exists():
             return "Không có mô tả chi tiết"
 
@@ -56,12 +56,12 @@ class ProductApproved(ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        # Lấy danh sách user_id đã được xác minh
+        
         verified_user_ids = AuditLog.objects.filter(verified=True).values_list('user_id', flat=True)
-        # Lọc product chỉ lấy những sản phẩm mà owner đã xác minh
+        
         return qs.filter(owner_id__in=verified_user_ids)
 
-    # Các hàm còn lại giữ nguyên
+
     def category_name(self, obj):
         if obj.category is None:  
             return "Không có danh mục"

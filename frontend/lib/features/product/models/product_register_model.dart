@@ -15,7 +15,7 @@ class ProductRegisterModel {
   final String district;
   final String ward;
   final String address;
-  final List<DescriptionItem> descriptions; // ✅ đổi sang class riêng
+  final List<DescriptionItem> descriptions; 
 
   ProductRegisterModel({
     this.id,
@@ -35,7 +35,7 @@ class ProductRegisterModel {
   Future<MultipartRequest> toMultipartRequest(Uri uri) async {
     final request = MultipartRequest('POST', uri);
 
-    // Trường text cơ bản
+
     request.fields['name'] = name;
     request.fields['description'] = description;
     request.fields['category'] = category.toString();
@@ -46,12 +46,12 @@ class ProductRegisterModel {
     request.fields['ward'] = ward;
     request.fields['address'] = address;
 
-    // ✅ gửi descriptions
+
     request.fields['description_product'] = jsonEncode(
       descriptions.map((e) => e.toJson()).toList(),
     );
 
-    // ✅ Thêm file ảnh
+
     for (var img in uploadImages) {
       request.files.add(
         await MultipartFile.fromPath("upload_images", img.path),
@@ -80,10 +80,10 @@ class DescriptionItem {
     "content": content
   };
 
-  // Thêm phương thức kiểm tra validation
+
   bool get isValid => title.isNotEmpty && content.isNotEmpty;
   
-  // Thêm phương thức copyWith để cập nhật giá trị
+  
   DescriptionItem copyWith({String? title, String? content}) {
     return DescriptionItem(
       title: title ?? this.title,

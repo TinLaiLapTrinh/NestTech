@@ -63,7 +63,7 @@ class _LocationManagerScreenState extends State<LocationManagerScreen> {
                   ),
                   onTap: widget.isSelecting
                       ? () {
-                          // Trả về location khi chọn
+                        
                           Navigator.pop(context, loc);
                         }
                       : null,

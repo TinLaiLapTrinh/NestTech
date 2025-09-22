@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 class ReusableFilterHeader extends StatefulWidget {
   final Function(Map<String, dynamic>) onFilterChanged; 
   final bool enableSearch;
-  final List<String> filterFields; // ví dụ: ["category", "status"]
+  final List<String> filterFields; 
   final Map<String, List<String>> filterOptions; 
-  // ví dụ: {"category": ["Tivi", "Laptop"], "status": ["Approved", "Pending"]}
+  
 
   const ReusableFilterHeader({
     Key? key,

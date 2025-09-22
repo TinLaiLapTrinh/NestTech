@@ -67,7 +67,7 @@ class _UserRegisterScreenState extends State<UserRegisterScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Đăng ký thành công: ${result['username']}")),
         );
-        Navigator.pop(context); // Quay lại màn trước
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {

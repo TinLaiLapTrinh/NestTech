@@ -58,7 +58,7 @@ class ProductDetailModel {
   }
 }
 
-// Owner
+
 class Owner {
   final int id;
   final String name;
@@ -71,7 +71,7 @@ class Owner {
   }
 }
 
-// Price Range
+
 class PriceRange {
   final double min;
   final double max;
@@ -86,7 +86,7 @@ class PriceRange {
   }
 }
 
-// Location
+
 class Location {
   final String? province;
   final String? ward;
@@ -98,7 +98,7 @@ class Location {
   }
 }
 
-// Product Image
+
 class ProductImage {
   final int id;
   final String alt;
@@ -111,10 +111,10 @@ class ProductImage {
   }
 }
 
-// Variant
+
 class ProductVariant {
   final int id;
-  double price; // bỏ final
+  double price; 
   int stock; 
   final VariantProduct? product;
   final List<OptionValue> optionValues;
@@ -174,7 +174,7 @@ class VariantProduct {
       };
 }
 
-// Option & OptionValue
+
 class Option {
   final int id;
   final String type;

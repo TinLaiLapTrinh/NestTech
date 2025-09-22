@@ -95,7 +95,7 @@ class _MapFilterScreenState extends State<MapFilterScreen> {
   Future<void> _onMapTap(LatLng point) async {
     setState(() => _selectedPoint = point);
 
-    // Lấy thông tin địa chỉ full từ tọa độ
+
     final locationInfo = await LocationService.reverseGeocodeFull(
       point.latitude,
       point.longitude,
@@ -106,7 +106,7 @@ class _MapFilterScreenState extends State<MapFilterScreen> {
       final districtName = locationInfo['district'];
       final wardName = locationInfo['ward'];
 
-      // Cập nhật Province
+
       final province = _provinces.firstWhere(
         (p) => p.name == provinceName,
         orElse: () => _provinces.first,
@@ -114,7 +114,7 @@ class _MapFilterScreenState extends State<MapFilterScreen> {
       setState(() => _selectedProvinceCode = province.code);
       await _loadDistricts(province.code);
 
-      // Cập nhật District
+
       final district = _districts.firstWhere(
         (d) => d.fullName == districtName,
         orElse: () => _districts.first,
@@ -122,7 +122,7 @@ class _MapFilterScreenState extends State<MapFilterScreen> {
       setState(() => _selectedDistrictCode = district.code);
       await _loadWards(district.code);
 
-      // Cập nhật Ward
+
       final ward = _wards.firstWhere(
         (w) => w.fullName == wardName,
         orElse: () => _wards.first,
@@ -132,12 +132,12 @@ class _MapFilterScreenState extends State<MapFilterScreen> {
       final address =
           "${ward.fullName}, ${district.fullName}, ${province.fullName}";
 
-      // Gọi callback nếu có
+
       if (widget.onLocationSelected != null) {
         widget.onLocationSelected!(address, _selectedPoint!);
       }
 
-      // Hiển thị snackbar
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Bạn đã chọn: $address")));
@@ -164,7 +164,7 @@ class _MapFilterScreenState extends State<MapFilterScreen> {
         setState(() => _selectedPoint = location);
         _mapController.move(location, 17);
 
-        // Gọi callback
+
         if (widget.onLocationSelected != null) {
           widget.onLocationSelected!(address, location);
         }

@@ -25,10 +25,10 @@ class _CustomerNavState extends State<CustomerNav> {
       const ProductListScreen(),
       const MyCartItemsScreen(),
       const OrderScreen(),
-      // const NotificationScreen(),   // nếu sau này có màn thông báo thì thêm
+      
       userProvider.isLoggedIn
-          ? const ProfileScreen()   // đã login
-          : const LoginScreen(),    // chưa login
+          ? const ProfileScreen()   
+          : const LoginScreen(),    
     ];
 
     return Scaffold(
@@ -37,7 +37,7 @@ class _CustomerNavState extends State<CustomerNav> {
         children: screens,
       ),
       bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed, // để hiển thị nhiều item
+        type: BottomNavigationBarType.fixed, 
         currentIndex: _index,
         onTap: (i) => setState(() => _index = i),
         items: const [

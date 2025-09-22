@@ -102,7 +102,7 @@ class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
                     ),
                     const SizedBox(width: 16),
 
-                    // Thông tin supplier
+
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,7 +151,7 @@ class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
 
                     const SizedBox(width: 8),
 
-                    // Nút theo dõi
+
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 120),
                       child: ElevatedButton(

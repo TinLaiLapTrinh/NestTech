@@ -19,7 +19,7 @@ class SupplierRegisterScreen extends StatefulWidget {
 class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
   int _currentStep = 0;
 
-  // Controllers cho User
+
   final _usernameCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _firstNameCtrl = TextEditingController();
@@ -29,13 +29,13 @@ class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
   final _addressCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
 
-  // Controllers cho Product
+
   final _productNameCtrl = TextEditingController();
   final _minPriceCtrl = TextEditingController();
   final _maxPriceCtrl = TextEditingController();
   final _descriptionCtrl = TextEditingController();
 
-  // Location
+
   List<Province> _provinces = [];
   List<District> _districts = [];
   List<Ward> _wards = [];
@@ -46,10 +46,10 @@ class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
   CategoryModel? _selectedCategory;
   final _productAddressCtrl = TextEditingController();
 
-  // Hình ảnh
+
   final List<File> _images = [];
 
-  // Danh mục
+
   List<CategoryModel> _categories = [];
 
   @override
@@ -101,7 +101,6 @@ class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
     }
   }
 
-  // ===== Location =====
 
   Widget _buildProvinceSelector() {
     return TextFormField(
@@ -232,7 +231,7 @@ class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
                 return ListTile(
                   title: Text(c.type),
                   onTap: () async {
-                    Navigator.pop(context); // đóng sheet
+                    Navigator.pop(context); 
                     setState(() {
                       _selectedCategory = c;
                     });
@@ -290,8 +289,6 @@ class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text("Đăng ký supplier thất bại!")));
 
-      // Có thể chuyển sang màn hình khác sau khi đăng ký thành công
-      // Navigator.pushReplacementNamed(context, "/home");
     }
   }
 
@@ -315,7 +312,7 @@ class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
           }
         },
         steps: [
-          // Step 1: Thông tin người dùng
+          
           Step(
             title: const Text("Thông tin người dùng"),
             isActive: _currentStep >= 0,
@@ -358,7 +355,6 @@ class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
             ),
           ),
 
-          // Step 2: Thông tin sản phẩm
           Step(
             title: const Text("Thông tin sản phẩm"),
             isActive: _currentStep >= 1,
@@ -387,7 +383,7 @@ class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
             ),
           ),
 
-          // Step 3: Vị trí sản phẩm
+
           Step(
             title: const Text("Vị trí sản phẩm"),
             isActive: _currentStep >= 2,
@@ -409,7 +405,7 @@ class _SupplierRegisterScreenState extends State<SupplierRegisterScreen> {
             ),
           ),
 
-          // Step 4: Hình ảnh minh họa
+
           Step(
             title: const Text("Hình ảnh minh họa"),
             isActive: _currentStep >= 3,

@@ -7,7 +7,7 @@ pluginManagement {
         flutterSdkPath
     }
 
-    // Đọc token Mapbox trực tiếp từ gradle.properties
+
     val mapboxToken: String = run {
         val properties = java.util.Properties()
         file("gradle.properties").inputStream().use { properties.load(it) }

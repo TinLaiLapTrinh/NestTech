@@ -41,7 +41,7 @@ class ProductService {
 
     final queryParams = {
       "page": page.toString(),
-      "hide_done": hideDone.toString(), // true/false
+      "hide_done": hideDone.toString(), 
       if (deliveryStatus != null) "delivery_status": deliveryStatus,
     };
 
@@ -77,7 +77,7 @@ class ProductService {
       url,
       headers: {
         ...headers,
-        "Content-Type": "application/json", // 🔑 bắt buộc
+        "Content-Type": "application/json",
       },
       body: body,
     );
@@ -120,7 +120,7 @@ class ProductService {
 
       return products;
     } else if (response.statusCode == 404) {
-      // Hết sản phẩm
+      
       return [];
     } else {
       throw Exception('Failed to load my products');
@@ -133,7 +133,7 @@ class ProductService {
 
     final res = await http.post(url, headers: headers);
     if (res.statusCode == 200) {
-      final data = json.decode(res.body); // decode JSON string
+      final data = json.decode(res.body); 
       return List<Map<String, dynamic>>.from(data);
     } else {
       throw Exception("Lỗi generate variant: ${res.reasonPhrase}");
@@ -265,7 +265,7 @@ class ProductService {
     print(request.descriptions);
     final multipartRequest = await request.toMultipartRequest(url);
 
-    final header = await ApiHeaders.getAuthHeaders(); // sửa ở đây
+    final header = await ApiHeaders.getAuthHeaders(); 
     multipartRequest.headers.addAll(header);
 
     final streamedResponse = await multipartRequest.send();

@@ -13,7 +13,7 @@ class OrderDetailScreen extends StatefulWidget {
 class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Map<String, dynamic>? _orderDetail;
   bool _isLoading = true;
-  final Map<int, double> _ratings = {}; // lưu rate theo order_detail_id
+  final Map<int, double> _ratings = {};
   final Map<int, TextEditingController> _commentCtrls = {};
 
   @override
@@ -113,7 +113,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ảnh + tên
+                      
                       Row(
                         children: [
                           if (productInfo?["image"] != null)
@@ -137,7 +137,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       ),
                       const SizedBox(height: 8),
 
-                      // option values
+
                       if (optionValues.isNotEmpty)
                         Wrap(
                           spacing: 8,
@@ -157,7 +157,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       Text("Phí vận chuyển: ${item["delivery_charge"] ?? 0}"),
                       Text("Trạng thái: ${deliveryStatus ?? "pending"}"),
 
-                      // nếu đã giao hàng thì cho đánh giá
+
                       if (deliveryStatus == "delivered") ...[
                         const Divider(),
                         const Text(

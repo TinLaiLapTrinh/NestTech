@@ -15,9 +15,9 @@ def hash_cccd(cccd_data: dict) -> str:
     """
     
     payload = json.dumps(cccd_data, sort_keys=True, ensure_ascii=False)
-    # Chuyển thành bytes
+    
     payload_bytes = payload.encode("utf-8")
-    # HMAC + SHA256
+    
     digest = hmac.new(settings.CCCD_SECRET_KEY, payload_bytes, hashlib.sha256).hexdigest()
     return digest
 
@@ -58,7 +58,7 @@ def recognize_id_card(image_file):
     """
     headers = {"api-key": settings.FPT_API_KEY}
 
-    # Gửi file trực tiếp, không dùng open()
+
     files = {
         "image": (image_file.name, image_file, image_file.content_type)
     }

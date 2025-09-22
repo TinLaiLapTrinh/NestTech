@@ -127,7 +127,7 @@ class _MyProductListScreenState extends State<MyProductListScreen> {
       ),
       body: Column(
         children: [
-          // Thanh tìm kiếm
+          
           Padding(
             padding: const EdgeInsets.all(12),
             child: TextField(
@@ -154,7 +154,7 @@ class _MyProductListScreenState extends State<MyProductListScreen> {
             ),
           ),
 
-          // Thống kê nhanh
+
           if (!_showDeleted && _myProducts.isNotEmpty && !_isLoading)
             Container(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -187,7 +187,7 @@ class _MyProductListScreenState extends State<MyProductListScreen> {
               ),
             ),
 
-          // Danh sách sản phẩm
+
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -223,7 +223,7 @@ class _MyProductListScreenState extends State<MyProductListScreen> {
         ],
       ),
 
-      // Nút thêm sản phẩm
+
       floatingActionButton: !_showDeleted
           ? FloatingActionButton(
               backgroundColor: Colors.green,
@@ -320,7 +320,7 @@ class _MyProductListScreenState extends State<MyProductListScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Ảnh sản phẩm
+              
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: firstImage != null
@@ -336,7 +336,7 @@ class _MyProductListScreenState extends State<MyProductListScreen> {
               ),
               const SizedBox(width: 12),
 
-              // Thông tin sản phẩm
+
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -344,7 +344,7 @@ class _MyProductListScreenState extends State<MyProductListScreen> {
                     Text(
                       p.name,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
                       maxLines: 2,
@@ -352,21 +352,21 @@ class _MyProductListScreenState extends State<MyProductListScreen> {
                     ),
                     const SizedBox(height: 6),
 
-                    // Giá
+
                     Text(
                       "₫${p.minPrice.toStringAsFixed(0).replaceAllMapped(
                             RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
                             (Match m) => '${m[1]}.',
                           )}",
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 13,
                         color: Colors.red,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 6),
 
-                    // Trạng thái và đã bán
+
                     Row(
                       children: [
                         Row(
@@ -376,7 +376,7 @@ class _MyProductListScreenState extends State<MyProductListScreen> {
                             const SizedBox(width: 4),
                             Text(
                               "Đã bán: ${p.soldQuantity}",
-                              style: const TextStyle(fontSize: 12),
+                              style: const TextStyle(fontSize: 10),
                             ),
                           ],
                         ),
@@ -388,7 +388,7 @@ class _MyProductListScreenState extends State<MyProductListScreen> {
                 ),
               ),
 
-              // Nút Edit/Delete
+
               if (!_showDeleted)
                 Column(
                   children: [
@@ -443,7 +443,7 @@ class _MyProductListScreenState extends State<MyProductListScreen> {
           Text(
             isApproved ? "Đang bán" : "Tạm ẩn",
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 8,
               fontWeight: FontWeight.w500,
               color: isApproved ? Colors.green : Colors.orange,
             ),

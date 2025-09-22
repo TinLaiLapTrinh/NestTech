@@ -45,12 +45,12 @@ class _RootScreenState extends State<RootScreen> {
     }
 
     if (_userType == null) {
-      // guest
+      
       return const LoginScreen();
     }
 
     if (_userType == "customer") {
-      // customer -> vào home
+      
       return const HomeScreen();
     }
 
@@ -62,7 +62,7 @@ class _RootScreenState extends State<RootScreen> {
       
     }
 
-    // fallback
+
     return const LoginScreen();
   }
 }

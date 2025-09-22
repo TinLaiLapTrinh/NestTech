@@ -2,7 +2,7 @@ plugins {
     id("com.android.application")
     id("kotlin-android")
     id("com.google.gms.google-services") 
-    id("dev.flutter.flutter-gradle-plugin") // flutter plugin luôn đặt cuối   
+    id("dev.flutter.flutter-gradle-plugin") 
 }
 
 android {
@@ -41,7 +41,7 @@ flutter {
     source = "../.."
 }
 
-// 🔥 dependencies phải để ngoài android block
+
 dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
     implementation("com.google.firebase:firebase-messaging")
@@ -50,5 +50,5 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
 
-// 🔥 plugin google-services phải để cuối cùng
+
 apply(plugin = "com.google.gms.google-services")

@@ -77,7 +77,7 @@ class Ward(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='wards'  # ward sẽ thuộc về district
+        related_name='wards'  
     )
     administrative_unit = models.ForeignKey(
         AdministrativeUnit,

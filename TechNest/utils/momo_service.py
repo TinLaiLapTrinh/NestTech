@@ -34,7 +34,7 @@ def generate_momo_ids(order_id: int):
 
 def create_momo_payment(amount: str, order_id: str, order_info: str):
     momo_conf = settings.MOMO_CONFIG
-    momo_order_id, request_id = generate_momo_ids(order_id)  # ✅ sinh id chuẩn
+    momo_order_id, request_id = generate_momo_ids(order_id) 
     extra_data = ""
 
     raw_signature = (

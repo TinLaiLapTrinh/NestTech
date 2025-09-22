@@ -16,7 +16,7 @@ def check_spam_akismet(comment_text, user_ip, user_agent="python-client"):
     headers = {"Authorization": f"Bearer {settings.AKISMET_API_KEY}"}
     response = requests.post(url, data=data, headers=headers)
     if response.status_code == 200:
-        return response.text == "true"  # True = spam
+        return response.text == "true" 
     else:
         raise Exception(f"Akismet API error: {response.status_code} - {response.text}")
 

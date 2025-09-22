@@ -8,7 +8,7 @@ from utils.choice import UserType
 
 
 def aggregate_by_period(queryset, date_field, group_field=None, period="month"):
-    # Chọn hàm Trunc tương ứng
+
     if period == "month":
         trunc_func = TruncMonth
         fmt = "%b %Y"
@@ -50,23 +50,23 @@ class TechNestAdminSite(UnfoldAdminSite):
     def index(self, request, extra_context=None):
         extra_context = extra_context or {}
 
-        # QuerySets
+
         users_qs = User.objects.all()
         products_qs = Product.objects.all()
         orders_qs = OrderDetail.objects.all()
 
-        # Thống kê người dùng
+
         total_customers = users_qs.filter(user_type=UserType.CUSTOMER).count()
         total_suppliers = users_qs.filter(user_type=UserType.SUPPLIER).count()
 
-        # Thống kê sản phẩm theo danh mục
+
         products_by_category = (
             products_qs.values("category__type")
             .annotate(total=Count("id"))
             .order_by("-total")
         )
 
-        # Thống kê đơn hàng theo danh mục sản phẩm
+
         orders_by_category = (
             orders_qs.values("product__product__category__type")
             .annotate(total=Count("id"))
@@ -77,11 +77,11 @@ class TechNestAdminSite(UnfoldAdminSite):
             "total_customers": total_customers,
             "total_suppliers": total_suppliers,
 
-            # Sản phẩm
+
             "category_labels": [p["category__type"] or "Khác" for p in products_by_category],
             "category_product_counts": [p["total"] for p in products_by_category],
 
-            # Đơn hàng
+
             "order_category_labels": [o["product__product__category__type"] or "Khác" for o in orders_by_category],
             "order_category_counts": [o["total"] for o in orders_by_category],
         })

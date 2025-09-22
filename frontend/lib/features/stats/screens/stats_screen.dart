@@ -49,7 +49,7 @@ class _StatsScreenState extends State<StatsScreen> {
       );
     }
 
-    // Xác định kiểu user dựa trên các key
+
     final isSupplier = stats!.containsKey('revenue');
     final fields = isSupplier
         ? ['total_orders_this_month', 'delivered_today', 'not_delivered', 'revenue']

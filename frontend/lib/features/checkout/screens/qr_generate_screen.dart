@@ -30,7 +30,7 @@ class _PaymentQrScreenState extends State<PaymentQrScreen> {
       if (status == 'paid') {
         _timer?.cancel();
         if (mounted) {
-          Navigator.of(context).popUntil((route) => route.isFirst); // về trang chủ
+          Navigator.of(context).popUntil((route) => route.isFirst); 
         }
       } else if (status == 'failed') {
         _timer?.cancel();

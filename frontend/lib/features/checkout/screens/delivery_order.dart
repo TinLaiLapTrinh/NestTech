@@ -173,7 +173,7 @@ class _DeliveryOrderScreenState extends State<DeliveryOrderScreen> {
       appBar: AppBar(title: const Text("Đơn hàng giao")),
       body: Column(
         children: [
-          // Filter bằng ChoiceChip
+          
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.all(8),
@@ -280,7 +280,7 @@ class _DeliveryOrderScreenState extends State<DeliveryOrderScreen> {
                               Text("Giá: ${order['price']}"),
                               Text("Phí ship: ${order['delivery_charge']}"),
                               const SizedBox(height: 4),
-                              // Status
+                              
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
@@ -303,7 +303,7 @@ class _DeliveryOrderScreenState extends State<DeliveryOrderScreen> {
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              // Dropdown cập nhật trạng thái
+                              
                               DropdownButton<String>(
                                 hint: const Text("Cập nhật trạng thái"),
                                 value: null,

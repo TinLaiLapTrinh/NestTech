@@ -10,7 +10,7 @@ class UserModelRegister {
   final String? dob;
   final String email;
   final String? address;
-  final File? avatar; // đổi từ Image -> File
+  final File? avatar; 
   final String? phoneNumber;
   final String? userType;
   final int? followCount;
@@ -39,7 +39,7 @@ class UserModelRegister {
       email: json['email'],
       address: json['address'],
       userType: json['user_type'],
-      // avatar cần xử lý riêng, ở đây để null
+      
       avatar: null,
       phoneNumber: json['phone_number'],
     );
@@ -95,11 +95,10 @@ class SupplierRegisterRequest {
     required this.productImages,
   });
 
-  /// Build MultipartRequest cho API
   Future<MultipartRequest> toMultipartRequest(Uri uri) async {
     final request = MultipartRequest('POST', uri);
 
-    // User fields
+
     request.fields['username'] = username;
     request.fields['password'] = password;
     request.fields['first_name'] = firstName;

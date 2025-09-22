@@ -14,7 +14,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trai
 # ================== PATH ==================
 DIR_ROOT = r"C:\Users\Administrator\Documents\DoAnNganh\NewNestTech\NestTech\TechNest"
 DIR_DATASET = os.path.join(DIR_ROOT, "dataset")
-MODEL_DIR = os.path.join(DIR_ROOT, "transformer_model_v2")
+MODEL_DIR = os.path.join(DIR_ROOT, "transformer_model")
 CACHE_DIR = os.path.join(DIR_ROOT, "cache")
 os.makedirs(MODEL_DIR, exist_ok=True)
 os.makedirs(CACHE_DIR, exist_ok=True)
