@@ -41,7 +41,7 @@ class Image(models.Model):
         '''
         url = cloudinary.utils.cloudinary_url(
             self.image.public_id,
-            cloud_name=cloudinary.config().cloud_name,  # Lấy cloud_name từ config
+            cloud_name=cloudinary.config().cloud_name, 
             secure=True,  # Đảm bảo HTTPS
             transformation=transformations
         )[0]

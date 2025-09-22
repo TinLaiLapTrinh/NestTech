@@ -12,6 +12,7 @@ class ProductDetailModel {
   final Location location;
   final List<ProductVariant> variants;
   final List<Option> options;
+  final List<Description> descriptions;
   final int soldQuantity;
 
   ProductDetailModel({
@@ -26,6 +27,7 @@ class ProductDetailModel {
     required this.location,
     required this.variants,
     required this.options,
+    required this.descriptions,
     required this.soldQuantity,
   });
 
@@ -48,6 +50,9 @@ class ProductDetailModel {
       options: (json['options'] as List? ?? [])
           .map((e) => Option.fromJson(e))
           .toList(),
+      descriptions: (json['descriptions'] as List? ?? [])
+          .map((e) => Description.fromJson(e))
+          .toList(),
       soldQuantity: json['sold_quantity'] ?? 0,
     );
   }
@@ -57,11 +62,12 @@ class ProductDetailModel {
 class Owner {
   final int id;
   final String name;
+  final String? avatar;
 
-  Owner({required this.id, required this.name});
+  Owner({required this.id, required this.name, this.avatar});
 
   factory Owner.fromJson(Map<String, dynamic> json) {
-    return Owner(id: json['id'], name: json['name']);
+    return Owner(id: json['id'], name: json['name'], avatar: json['avatar']);
   }
 }
 
@@ -210,5 +216,56 @@ class OptionType {
 
   factory OptionType.fromJson(Map<String, dynamic> json) {
     return OptionType(type: json['type']);
+  }
+}
+
+class Description {
+  final int id;
+  final String title;
+  final String content;
+
+  Description({required this.id, required this.title, required this.content});
+
+  factory Description.fromJson(Map<String, dynamic> json) {
+    return Description(
+      id: json['id'],
+      title: json['title'],
+      content: json['content'],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    "title": title,
+    "content": content,
+  };
+}
+
+
+class Rate {
+  final int id;
+  final double rate;
+  final String content;
+  final String ownerName;
+  final int orderId;
+  final DateTime createdAt;
+
+  Rate({
+    required this.id,
+    required this.rate,
+    required this.content,
+    required this.ownerName,
+    required this.orderId,
+    required this.createdAt,
+  });
+
+  factory Rate.fromJson(Map<String, dynamic> json) {
+    return Rate(
+      id: json['id'],
+      rate: (json['rate'] as num).toDouble(),
+      content: json['content'],
+      ownerName: json['owner_name'],
+      orderId: json['order_id'],
+      createdAt: DateTime.parse(json['created_at']),
+    );
   }
 }

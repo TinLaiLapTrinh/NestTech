@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:frontend/core/configs/api_config.dart';
+import 'package:frontend/features/checkout/screens/qr_generate_screen.dart';
 import 'package:frontend/features/checkout/services/checkout_service.dart';
 import 'package:frontend/features/location/models/location_model.dart';
 import 'package:frontend/features/location/screens/location_manager_screen.dart';
@@ -21,10 +22,10 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
   UserLocation? _selectedLocation;
   final TextEditingController _receivePhoneNumber = TextEditingController();
   List<Map<String, dynamic>> shippingRates = [];
-  
   bool _isLoading = true;
 
-
+  // 👇 thêm payment method
+  String _selectedPaymentMethod = "COD";
 
   @override
   void initState() {
@@ -66,7 +67,6 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
         }
       }
 
-      // 👉 Sau khi xong hết thì set _isLoading = false
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -83,7 +83,6 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
   }
 
   Future<void> _checkAndSelectLocation() async {
-    
     if (_selectedLocation != null) return;
 
     final data = await LocationService.getLocation();
@@ -123,6 +122,15 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
       );
       return;
     }
+    // check delivery method
+    for (var item in widget.orderItems) {
+      if (item["delivery_method"] == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Vui lòng chọn phương thức giao hàng")),
+        );
+        return;
+      }
+    }
 
     final orderDetails = widget.orderItems.map((item) {
       return {
@@ -142,19 +150,35 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
       "latitude": _selectedLocation!.latitude,
       "longitude": _selectedLocation!.longitude,
       "order_details": orderDetails,
+      "payment_method": _selectedPaymentMethod, // đã chuẩn value
     };
 
     try {
       final res = await CheckoutService.addOrder(payload);
 
-      // res là Map, không còn statusCode
-      if (res.containsKey("order_id")) {
+      // MOMO flow
+      if (res.containsKey("payUrl") && res["payUrl"] != null) {
+        final payUrl = res["payUrl"];
+        if (!mounted) return;
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                PaymentQrScreen(payUrl: payUrl, orderId: res["order_id"]),
+          ),
+        );
+      }
+      // COD flow
+      else if (res.containsKey("order_id")) {
         if (!mounted) return;
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text("Đặt hàng thành công!")));
         Navigator.pop(context, true);
-      } else {
+      }
+      // lỗi
+      else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Đặt hàng thất bại: ${res.toString()}")),
@@ -180,6 +204,7 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            // chọn địa chỉ
             const Align(
               alignment: Alignment.centerLeft,
               child: Text("Chọn địa chỉ giao hàng:"),
@@ -189,10 +214,8 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => LocationManagerScreen(
-                      isSelecting:
-                          true, // flag để biết là đang chọn chứ không phải quản lý
-                    ),
+                    builder: (context) =>
+                        const LocationManagerScreen(isSelecting: true),
                   ),
                 );
 
@@ -211,7 +234,7 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.location_on, color: Colors.blue),
+                    const Icon(Icons.location_on, color: Colors.blue),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -226,7 +249,11 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
                         ),
                       ),
                     ),
-                    Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                    const Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: Colors.grey,
+                    ),
                   ],
                 ),
               ),
@@ -234,7 +261,7 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
 
             const SizedBox(height: 16),
 
-            // Số điện thoại
+            // SĐT
             TextField(
               controller: _receivePhoneNumber,
               decoration: const InputDecoration(
@@ -245,7 +272,34 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Danh sách sản phẩm trong order
+            // phương thức thanh toán
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "Chọn phương thức thanh toán:",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            RadioListTile<String>(
+              title: const Text("Thanh toán khi nhận hàng (COD)"),
+              value: "cod",
+              groupValue: _selectedPaymentMethod,
+              onChanged: (value) {
+                setState(() => _selectedPaymentMethod = value!);
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text("Thanh toán qua MoMo"),
+              value: "momo",
+              groupValue: _selectedPaymentMethod,
+              onChanged: (value) {
+                setState(() => _selectedPaymentMethod = value!);
+              },
+            ),
+
+            const SizedBox(height: 16),
+
+            // danh sách sản phẩm
             Expanded(
               child: ListView.builder(
                 itemCount: widget.orderItems.length,
@@ -261,7 +315,6 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Hình ảnh
                           Image.network(
                             (baseProduct['image']?.isNotEmpty ?? false)
                                 ? baseProduct['image']
@@ -271,8 +324,6 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
                             fit: BoxFit.cover,
                           ),
                           const SizedBox(width: 12),
-
-                          // Thông tin sản phẩm
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -292,8 +343,7 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
                                 const SizedBox(height: 8),
                                 DropdownButton<String>(
                                   isExpanded: true,
-                                  value:
-                                      item["delivery_method"], // mỗi item có method riêng
+                                  value: item["delivery_method"],
                                   items: (item["shipping_rates"] ?? [])
                                       .map<DropdownMenuItem<String>>((rate) {
                                         return DropdownMenuItem(
@@ -308,8 +358,7 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
                                       .toList(),
                                   onChanged: (val) {
                                     setState(() {
-                                      item["delivery_method"] =
-                                          val; // gán method cho đúng item
+                                      item["delivery_method"] = val;
                                     });
                                   },
                                 ),
@@ -324,7 +373,6 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
               ),
             ),
 
-            // Nút xác nhận
             ElevatedButton.icon(
               icon: const Icon(Icons.check),
               label: const Text("Xác nhận đặt hàng"),

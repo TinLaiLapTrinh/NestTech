@@ -79,7 +79,7 @@ class SupplierApprovedAdmin(UserAdmin):
     ]
     def product_name(self, user):
         """
-        Hiển thị thông tin tên dãy trọ đăng ký
+        Hiển thị thông tin tên sản phẩm
         """
         product = user.products.first()
         if not product:
@@ -117,14 +117,18 @@ class SupplierApprovedAdmin(UserAdmin):
 
         qs = super().get_queryset(request)
 
-        return qs.filter(user_type=UserType.SUPPLIER,is_active=False).prefetch_related('products')
-
+        return qs.filter(
+            user_type=UserType.SUPPLIER,
+            is_active=False,
+            products__status=ProductStatus.DEPENDING
+        ).distinct().prefetch_related('products')
     def approve_user(self, request,user_id):
         user = get_object_or_404(User, id=user_id,user_type = UserType.SUPPLIER)
         product =  user.products.first()
 
         if product:
-            product.status = Product = ProductStatus.APPROVED
+            product.status = ProductStatus.APPROVED
+            product.active = True 
             product.save()
         
         

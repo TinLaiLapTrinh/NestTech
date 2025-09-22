@@ -7,12 +7,43 @@ pluginManagement {
         flutterSdkPath
     }
 
+    // Đọc token Mapbox trực tiếp từ gradle.properties
+    val mapboxToken: String = run {
+        val properties = java.util.Properties()
+        file("gradle.properties").inputStream().use { properties.load(it) }
+        properties.getProperty("MAPBOX_DOWNLOADS_TOKEN") ?: ""
+    }
+
     includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
 
     repositories {
         google()
         mavenCentral()
         gradlePluginPortal()
+        maven {
+            url = uri("https://api.mapbox.com/downloads/v2/releases/maven")
+            credentials {
+                username = "mapbox"
+                password = "sk.eyJ1IjoidHJvbmd0aW4xMjkyMDA0IiwiYSI6ImNtZmYwY2xqNzA2MGwya3NlbnF3ZDlubTkifQ.Imtn6yqBOUlFprCVV77k6A"
+            }
+        }
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+        maven { url = uri("https://storage.googleapis.com/download.flutter.io") }
+        maven {
+            url = uri("https://api.mapbox.com/downloads/v2/releases/maven")
+            credentials {
+                username = "mapbox"
+                password = "sk.eyJ1IjoidHJvbmd0aW4xMjkyMDA0IiwiYSI6ImNtZmYwY2xqNzA2MGwya3NlbnF3ZDlubTkifQ.Imtn6yqBOUlFprCVV77k6A"
+            }
+        }
     }
 }
 

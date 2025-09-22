@@ -12,17 +12,13 @@ class Category(BaseModel):
     def __str__(self):
         return self.type 
 
-
-
-
 class Product(BaseModel):
-    name = models.CharField(max_length=100,null=False)
+    name = models.CharField(max_length=255,null=False)
     status = models.CharField(max_length=20, choices=ProductStatus,default=ProductStatus.DEPENDING)
     max_price = models.FloatField(null=True)
     min_price = models.FloatField(null=True)
     owner = models.ForeignKey('accounts.User', related_name='products',on_delete=models.CASCADE, limit_choices_to={'user_type':UserType.SUPPLIER})
     description = models.TextField(null=True)
-    rate_avg=models.FloatField(default=0.0)
     category = models.ForeignKey('Category',related_name="products",on_delete=models.PROTECT, null=True)
     sold_quantity = models.PositiveIntegerField(default=0)
 
@@ -47,18 +43,21 @@ class Product(BaseModel):
     address = models.CharField(max_length=256, null=True)
     is_deleted = models.BooleanField(default=False)
 
-    def save(self, *args, **kwargs):
-        is_new = self.pk is None
-        super().save(*args, **kwargs)
-        if is_new and self.min_price is not None:
-            ProductVariant.objects.create(
-                product=self,
-                price=self.min_price,
-                stock=0,  
-                sku=f"{self.id}-{int(self.min_price)}" 
-            )
+    # def save(self, *args, **kwargs):
+    #     is_new = self.pk is None
+    #     super().save(*args, **kwargs)
+    #     if is_new and self.min_price is not None:
+    #         ProductVariant.objects.create(
+    #             product=self,
+    #             price=self.min_price,
+    #             stock=0,  
+    #             sku=f"{self.id}-{int(self.min_price)}" 
+    #         )
 
-
+class Descriptions(models.Model):
+    title = models.CharField(max_length=55, null=False)
+    content = models.CharField(max_length=255, null=False)
+    product = models.ForeignKey('Product', null=True, blank=True,related_name='descriptions',on_delete=models.CASCADE)
 
 class Option(models.Model):
     type=models.CharField(max_length=30, null=True)
@@ -104,7 +103,7 @@ class Comment(BaseModel):
 
 class Rate(BaseModel):
     product = models.ForeignKey('Product',related_name='rates',on_delete=models.CASCADE)
-    order_detail = models.ForeignKey('checkout.OrderDetail', related_name='rate',on_delete=models.SET_NULL, null=True)
+    order_detail = models.OneToOneField('checkout.OrderDetail', related_name='rate',on_delete=models.SET_NULL, null=True)
     rate = models.FloatField(default=0.0,null=False)
     content = models.TextField(null=True)
     ip_address = models.GenericIPAddressField(null=True)

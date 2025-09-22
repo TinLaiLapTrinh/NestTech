@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:http/http.dart';
 
-class UserModel {
+class UserModelRegister {
   final int? id;
   final String username;
   final String firstName;
@@ -15,7 +15,7 @@ class UserModel {
   final String? userType;
   final int? followCount;
 
-  UserModel({
+  UserModelRegister({
     this.id,
     required this.username,
     required this.firstName,
@@ -29,8 +29,8 @@ class UserModel {
     this.userType,
   });
 
-  factory UserModel.fromJson(Map<String, dynamic> json) {
-    return UserModel(
+  factory UserModelRegister.fromJson(Map<String, dynamic> json) {
+    return UserModelRegister(
       id: json['id'],
       username: json['username'],
       firstName: json['first_name'],
@@ -47,7 +47,7 @@ class UserModel {
 }
 
 class SupplierRegisterRequest {
-  // User
+  
   String username;
   String password;
   String firstName;
@@ -60,7 +60,7 @@ class SupplierRegisterRequest {
   File? avatar;
   int? followCount;
 
-  // Product
+
   String productName;
   String productDescription;
   String productCategory;

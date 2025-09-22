@@ -1,5 +1,5 @@
 class ApiConfig {
-  static const String baseUrl = "http://192.168.1.3:8000";
+  static const String baseUrl = "http://192.168.1.14:8000";
 
   // Auth
   static const String tokenEndpoint = "/o/token/";
@@ -7,6 +7,7 @@ class ApiConfig {
   // Product
   static const String productList = "/products/";
   static const String categoryList = "/category/";
+  static const String addNewProduct = "/products/";
   static const String myProductList = "/products/my-product/";
   static String productDetail(int id) => "/products/$id/";
   static String productDelete(int id) => "/products/$id/";
@@ -15,9 +16,13 @@ class ApiConfig {
   static String productVariants(int id) => "/product/$id/variant/";
   static String productVariantUpdate(int id, int variantId) => "/product/$id/variant/$variantId/";
   static String addProductVariant(int id)=>"/products/$id/generate-variant/";
-  static String productVariantDetai(int id, int variantId) => "/product/$id/variant/$variantId/";
+  static String productVariantDetail(int id, int variantId) => "/product/$id/variant/$variantId/";
   static String options(int id)=>"/products/$id/get-options/";
-  
+  static const String saveFcmToken="/save-fcm-token/";
+  static String getRate(int id)=>"/products/$id/rates/";
+  static const String productsDeleted ="/products/deleted/";
+  static String shopProducts(int id)=> "/products/shop-products/$id/";
+
   // Location
   static String getProvinces = "/locations/province/";
   static String getDistrict(String id) => "/locations/$id/district/";
@@ -28,12 +33,16 @@ class ApiConfig {
 
   // User
   static const String profileUser = "/users/current-user/";
+  static String userDetail(int id)=>"/users/$id/";
   static String customerRegister = "/users/customer-register/";
   static String supplierRegister = "/users/supplier-register/";
   static String followers = "/follow/followers/";
   static String followings = "/follow/followings/";
   static String unFollow(int id) => "/follow/$id/unfollow/";
   static String isFollowing(int id) => "/follow/$id/is-following/";
+  static String follow(int id)=>"/follow/$id/follow/";
+  static String verification = "/verify-cccd/";
+
 
   // order
   static String addOrder = "/order/";
@@ -42,6 +51,10 @@ class ApiConfig {
   static String deleteOrderDetailItem(int id, int idItem) => "/order/$id/delete-order-detail/$idItem/";
   static String orderDetail = "/order-detail/";
   static String orderDetailUpdate(int id) =>"/order-detail/$id/";
+  static String orderDetailRetrieve(int id) =>"/order-detail/$id/";
+  static String confirmOrderDetail(int id)=>"/order-detail/$id/delivered/";
+  static String ratingProduct(int id)=>"/order-detail/$id/rate-product/";
+  static String orderCheckout = "/payments/return/";
 
   // cart
   static String shoppingCart = "/shoppingcart/";
@@ -49,6 +62,10 @@ class ApiConfig {
   static String shoppingCartDeteteItem(int idItem)=>"/shoppingcart/delete-item/$idItem/";
   static String shoppingCartItems = "/shoppingcart/items/";
   static String shoppingCartUpdateItem(int idItem) => "/shoppingcart/update-item/$idItem/"; 
+
+
+  // stats
+  static String dashboardStats = "/stats/";
 
 
 

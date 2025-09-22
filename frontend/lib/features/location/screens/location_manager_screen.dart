@@ -38,14 +38,12 @@ class _LocationManagerScreenState extends State<LocationManagerScreen> {
   }
 
   Future<void> _addNewLocation() async {
-    final newLocation = await showDialog<UserLocation>(
+    await showDialog<UserLocation>(
       context: context,
       builder: (_) => const AddLocationPopup(),
     );
 
-    if (newLocation != null) {
       _loadLocations();
-    }
   }
 
   @override

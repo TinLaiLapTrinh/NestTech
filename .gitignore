@@ -26,6 +26,10 @@ TechNest/*.egg-info/
 TechNest/.installed.cfg
 TechNest/*.egg
 TechNest/MANIFEST
+<<<<<<< HEAD
+TechNest/firebase/notification-600a5-firebase-adminsdk-fbsvc-2f5f26028e
+=======
+>>>>>>> 362a5ce8c9896e7b0e02934d38d47ce065d37035
 
 # Installer logs
 TechNest/pip-log.txt
@@ -45,6 +49,9 @@ TechNest/*.py.cover
 TechNest/.hypothesis/
 TechNest/.pytest_cache/
 TechNest/cover/
+# Data / Cache / Model
+cache/
+TechNest/transformer_model/
 
 # Environments
 TechNest/.env
@@ -87,3 +94,5 @@ frontend/.vscode/
 
 # Optional: ignore local env
 frontend/.env
+TechNest/firebase/*.json
+TechNest/hf_cache/

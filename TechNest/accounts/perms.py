@@ -23,7 +23,7 @@ class IsCustomer(permissions.IsAuthenticated):
         is_authenticated = super().has_permission(request, view)
         return is_authenticated and request.user.user_type == UserType.CUSTOMER 
     
-class IsDeliveryMan(permissions.IsAuthenticated):
+class IsDeliveryPerson(permissions.IsAuthenticated):
     """
     Chỉ cho phép người dùng có loại là `DELIVERY MAN` truy cập.
     """
@@ -39,5 +39,12 @@ class IsFollower(permissions.IsAuthenticated):
     Chỉ cho phép người dùng là follower của bản ghi Follow được xóa.
     """
     def has_object_permission(self, request, view, obj):
-        # Kiểm tra nếu người dùng hiện tại là follower
+        
         return obj.follower == request.user
+    
+class IsSupplierOrDeliveryPerson(permissions.BasePermission):
+    message = "Chỉ SUPPLIER hoặc DELIVERY_PERSON mới được phép truy cập!"
+
+    def has_permission(self, request, view):
+        user = request.user
+        return user.is_authenticated and user.user_type in [UserType.SUPPLIER, UserType.DELIVER_PERSON]

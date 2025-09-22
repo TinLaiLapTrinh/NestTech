@@ -1,0 +1,110 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Dashboard TechNest</h1>
+
+<!-- Cards tổng quan người dùng -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+  <div class="bg-white shadow rounded-xl p-6">
+    <h2 class="text-lg font-semibold">Khách hàng</h2>
+    <p class="text-3xl font-bold text-blue-600">{{ total_customers }}</p>
+  </div>
+  <div class="bg-white shadow rounded-xl p-6">
+    <h2 class="text-lg font-semibold">Nhà cung cấp</h2>
+    <p class="text-3xl font-bold text-green-600">{{ total_suppliers }}</p>
+  </div>
+</div>
+
+<!-- Biểu đồ sản phẩm & đơn hàng trên cùng 1 hàng -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+  <!-- Pie chart sản phẩm -->
+  <div class="bg-white shadow rounded-xl p-6">
+    <h2 class="text-lg font-semibold mb-4">Sản phẩm theo danh mục</h2>
+    <canvas id="categoryProductChart"></canvas>
+  </div>
+
+  <!-- Bar chart đơn hàng -->
+  <div class="bg-white shadow rounded-xl p-6">
+    <h2 class="text-lg font-semibold mb-4">Đơn hàng theo danh mục</h2>
+    <canvas id="orderCategoryChart"></canvas>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Màu cho pie chart sản phẩm
+  const categoryColors = [
+    'rgba(54, 162, 235, 0.7)',
+    'rgba(255, 99, 132, 0.7)',
+    'rgba(255, 206, 86, 0.7)',
+    'rgba(75, 192, 192, 0.7)',
+    'rgba(153, 102, 255, 0.7)',
+    'rgba(255, 159, 64, 0.7)',
+    'rgba(201, 203, 207, 0.7)',
+    'rgba(0, 200, 83, 0.7)'
+  ];
+
+  // Pie chart sản phẩm
+  new Chart(document.getElementById('categoryProductChart'), {
+    type: 'pie',
+    data: {
+      labels: {{ category_labels|safe }},
+      datasets: [{
+        data: {{ category_product_counts|safe }},
+        backgroundColor: categoryColors.slice(0, {{ category_labels|length }})
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'right'
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return context.label + ': ' + context.raw + ' sản phẩm';
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Bar chart đơn hàng
+  new Chart(document.getElementById('orderCategoryChart'), {
+    type: 'bar',
+    data: {
+      labels: {{ order_category_labels|safe }},
+      datasets: [{
+        label: 'Đơn hàng',
+        data: {{ order_category_counts|safe }},
+        backgroundColor: 'rgba(255, 99, 132, 0.7)'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return context.raw + ' đơn hàng';
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            precision:0
+          }
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}

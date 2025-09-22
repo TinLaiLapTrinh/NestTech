@@ -104,16 +104,128 @@ class _AddLocationPopupState extends State<AddLocationPopup> {
     try {
       await LocationService.addLocation(userLocation);
       if (mounted) {
-        Navigator.pop(context, true); 
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Thêm vị trí thành công')),
+        );
+        Navigator.pop(context); 
       }
     } catch (e) {
-      print(e);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Lưu vị trí thất bại: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lưu vị trí thất bại: $e')),
+        );
       }
+      print('Lỗi khi lưu location: $e');
     }
+  }
+
+  Widget _buildProvinceSelector() {
+    return TextFormField(
+      readOnly: true,
+      decoration: const InputDecoration(
+        labelText: "Tỉnh/Thành phố",
+        suffixIcon: Icon(Icons.arrow_drop_down),
+      ),
+      controller: TextEditingController(
+        text: _selectedProvince?.fullName ?? "",
+      ),
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          builder: (_) {
+            return ListView(
+              children: _provinces.map((p) {
+                return ListTile(
+                  title: Text(p.fullName),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    setState(() {
+                      _selectedProvince = p;
+                      _selectedDistrict = null;
+                      _selectedWard = null;
+                      _districts = [];
+                      _wards = [];
+                    });
+                    await _loadDistricts(p.code);
+                  },
+                );
+              }).toList(),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildDistrictSelector() {
+    if (_districts.isEmpty) return const SizedBox.shrink();
+
+    return TextFormField(
+      readOnly: true,
+      decoration: const InputDecoration(
+        labelText: "Quận/Huyện",
+        suffixIcon: Icon(Icons.arrow_drop_down),
+      ),
+      controller: TextEditingController(
+        text: _selectedDistrict?.fullName ?? "",
+      ),
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          builder: (_) {
+            return ListView(
+              children: _districts.map((d) {
+                return ListTile(
+                  title: Text(d.fullName),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    setState(() {
+                      _selectedDistrict = d;
+                      _selectedWard = null;
+                      _wards = [];
+                    });
+                    await _loadWards(d.code);
+                  },
+                );
+              }).toList(),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildWardSelector() {
+    if (_wards.isEmpty) return const SizedBox.shrink();
+
+    return TextFormField(
+      readOnly: true,
+      decoration: const InputDecoration(
+        labelText: "Phường/Xã",
+        suffixIcon: Icon(Icons.arrow_drop_down),
+      ),
+      controller: TextEditingController(text: _selectedWard?.fullName ?? ""),
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          builder: (_) {
+            return ListView(
+              children: _wards.map((w) {
+                return ListTile(
+                  title: Text(w.fullName),
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() {
+                      _selectedWard = w;
+                    });
+                  },
+                );
+              }).toList(),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -123,79 +235,36 @@ class _AddLocationPopupState extends State<AddLocationPopup> {
       content: SingleChildScrollView(
         child: Column(
           children: [
-            DropdownButton<Province>(
-              hint: const Text("Chọn tỉnh"),
-              value: _selectedProvince,
-              items: _provinces
-                  .map(
-                    (prov) =>
-                        DropdownMenuItem(value: prov, child: Text(prov.name)),
-                  )
-                  .toList(),
-              onChanged: (province) {
-                if (province == null) return;
-                setState(() {
-                  _selectedProvince = province;
-                  _selectedDistrict = null;
-                  _selectedWard = null;
-                  _districts = [];
-                  _wards = [];
-                });
-                _loadDistricts(province.code);
-              },
-            ),
-            DropdownButton<District>(
-              hint: const Text("Chọn huyện"),
-              value: _selectedDistrict,
-              items: _districts
-                  .map(
-                    (d) => DropdownMenuItem(value: d, child: Text(d.fullName)),
-                  )
-                  .toList(),
-              onChanged: (district) {
-                if (district == null) return;
-                setState(() {
-                  _selectedDistrict = district;
-                  _selectedWard = null;
-                  _wards = [];
-                });
-                _loadWards(district.code);
-              },
-            ),
-            DropdownButton<Ward>(
-              hint: const Text("Chọn xã"),
-              value: _selectedWard,
-              items: _wards
-                  .map(
-                    (w) => DropdownMenuItem(value: w, child: Text(w.fullName)),
-                  )
-                  .toList(),
-              onChanged: (ward) {
-                if (ward == null) return;
-                setState(() => _selectedWard = ward);
-              },
-            ),
+            _buildProvinceSelector(),
             const SizedBox(height: 8),
+            _buildDistrictSelector(),
+            const SizedBox(height: 8),
+            _buildWardSelector(),
+            const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _openMapScreen,
               child: const Text('Chọn trên bản đồ'),
             ),
             if (_selectedPoint != null)
-              Text(
-                'Đã chọn: (${_selectedPoint!.latitude}, ${_selectedPoint!.longitude})',
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Đã chọn: (${_selectedPoint!.latitude}, ${_selectedPoint!.longitude})',
+                ),
               ),
           ],
         ),
       ),
       actions: [
         TextButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
           child: const Text('Hủy'),
         ),
         if (_selectedPoint != null)
-          ElevatedButton(onPressed: _saveLocation, child: const Text('Lưu')),
+          ElevatedButton(
+            onPressed: _saveLocation,
+            child: const Text('Lưu'),
+          ),
       ],
     );
   }

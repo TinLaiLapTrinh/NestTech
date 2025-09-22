@@ -19,14 +19,9 @@ from django.utils.translation import gettext_lazy as _
 BASE_DIR = Path(__file__).resolve().parent.parent
 from django.templatetags.static import static
 
-# REST_FRAMEWORK = {
-#     'DEFAULT_RENDERER_CLASSES': [
-#         'rest_framework.renderers.JSONRenderer',
-#     ],
-# }
+from dotenv import load_dotenv
+load_dotenv()
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-dm60fy80nxvu0d7q5f(e%kk7bx-src4e+m*z%bc)byh=q9x*38'
@@ -40,8 +35,14 @@ ALLOWED_HOSTS = [
      "127.0.0.1",
      "10.133.216.48",
      "10.189.114.102",
-     "10.189.114.149"
+     "10.189.114.149",
+     "a5b3c0371cc8.ngrok-free.app",
+     "192.168.73.13",
+     "192.168.1.14",
 ]
+
+USE_TZ = False
+TIME_ZONE = "Asia/Ho_Chi_Minh"
 
 
 # Application definition
@@ -65,6 +66,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    
     # 
     # "corsheaders",
     "drf_yasg",
@@ -97,7 +99,7 @@ ROOT_URLCONF = 'TechNest.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+         "DIRS": [BASE_DIR / "templates"], 
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -148,7 +150,10 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
      
-INTERNAL_IPS = [ "192.168.1.3","127.0.0.1","10.133.216.48","10.189.114.102","10.189.114.149"]
+INTERNAL_IPS = [ "192.168.1.3","127.0.0.1",
+                "10.133.216.48","10.189.114.102"
+                ,"10.189.114.149","192.168.73.13",
+                "192.168.1.9"]
 
 
 
@@ -157,11 +162,9 @@ INTERNAL_IPS = [ "192.168.1.3","127.0.0.1","10.133.216.48","10.189.114.102","10.
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
-USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
@@ -203,9 +206,9 @@ OAUTH2_PROVIDER = {
 }
 
 cloudinary.config(
-    cloud_name='dzd5jyp6o',
-    api_key='997166633461435',
-    api_secret='N613u569QF0rczTar8XVQJPNvjc',
+    cloud_name=os.getenv("CLOUNDINARY_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
     secure=True,
 )
 
@@ -215,8 +218,29 @@ OAUTH2_PROVIDER = {
     "GRANT_TYPES": ["password", "refresh_token", "authorization_code"],
 }
 
+MOMO_CONFIG = {
+    "endpoint": "https://test-payment.momo.vn/v2/gateway/api/create",
+    "accessKey": os.getenv("MOMO_ACCESS_KEY"),
+    "secretKey": os.getenv("MOMO_SECRET_KEY"),
+    "partnerCode": "MOMO",
+    "redirectUrl": "http://127.0.0.1:8000/payments/return/",   
+    "ipnUrl": "https://a5b3c0371cc8.ngrok-free.app/payments/ipn/",          
+}
+
+
+AKISMET_API_KEY = os.getenv("AKISMET_API_KEY_DEV")
+BLOG_URL = os.getenv("BLOG_URL_DEV")
 CLIENT_ID = os.getenv("OATUH2_CLIENT_ID")
 CLIENT_SECRET = os.getenv("OATUH2_CLIENT_SECRET")
+CELERY_BROKER_URL = "redis://localhost:6379/0"
+CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
+FPT_API_KEY = os.getenv("FPT_API_KEY")
+API_URL = "https://api.fpt.ai/vision/idr/vnm"
+secret_key_str = os.getenv("CCCD_SECRET_KEY")
+CCCD_SECRET_KEY = secret_key_str.encode("utf-8")
+BLOCK_SIZE = 16
+
+
 UNFOLD = {
     "SITE_TITLE": "TechNest Admin",
     "SITE_HEADER": "TechNest",

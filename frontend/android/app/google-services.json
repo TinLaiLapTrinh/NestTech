@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "708579692276",
+    "project_id": "notification-600a5",
+    "storage_bucket": "notification-600a5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:708579692276:android:598e42996732ede4e218a1",
+        "android_client_info": {
+          "package_name": "com.vtt.technet"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCc_4yXqm0mRpxZXIyKuaERxNdULUO6tTQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

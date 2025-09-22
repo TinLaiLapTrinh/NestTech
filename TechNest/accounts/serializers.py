@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Follow
+from .models import User, Follow, AuditLog
 from checkout.models import ShoppingCart
 from products.models import Category, Product, ProductImage
 from utils.serializers import ImageSerializer
@@ -9,14 +9,14 @@ from django.db import transaction
 
 
 class UserSerializer(serializers.ModelSerializer):
-
     follow_count = serializers.SerializerMethodField()
+    is_verified = serializers.SerializerMethodField()
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
         data["avatar"] = instance.avatar.url if instance.avatar else ""
         return data
-    
+
     class Meta:
         model = User
         fields = [
@@ -32,28 +32,21 @@ class UserSerializer(serializers.ModelSerializer):
             "phone_number",
             "user_type",
             "follow_count",
-            
-            
+            "is_verified", 
         ]
         extra_kwargs = {"password": {"write_only": True}}
 
     def get_follow_count(self, obj):
         return obj.followers.count() if obj.user_type == UserType.SUPPLIER else obj.following.count()
 
-
-           
-
-    def create(self, validated_data):
-        user = User(**validated_data)
-        user.set_password(user.password)
-        user.save()
-        return user
-    
+    def get_is_verified(self, obj):
+        if obj.user_type == UserType.SUPPLIER:
+            latest_log = AuditLog.objects.filter(user=obj).order_by("-timestamp").first()
+            return latest_log.verified if latest_log else False
+        return None  # khách hàng không cần hiện
 
 
-    
 
-    
 class CustomerRegister(serializers.ModelSerializer):
     avatar = serializers.ImageField(required=False)
 
@@ -79,14 +72,14 @@ class CustomerRegister(serializers.ModelSerializer):
         extra_kwargs = {"password": {"write_only": True}}
 
     def create(self, validated_data):
-        # tạo user trước
+        
         user_serializer = UserSerializer(data=validated_data)
         if user_serializer.is_valid():
             user = user_serializer.save(
                 is_active=True,
                 user_type=UserType.CUSTOMER
             )
-            # tạo giỏ hàng cho user
+            
             ShoppingCart.objects.create(owner=user)
             return user
         else:
@@ -186,15 +179,20 @@ class SupplierRegister(serializers.ModelSerializer):
 
         try:
             with transaction.atomic():
-                # Tạo supplier (User)
+                
                 supplier = User.objects.create(**validated_data)
                 supplier.set_password(password)
+                supplier.user_type = UserType.SUPPLIER
+                supplier.active = False
                 supplier.save()
 
-                # Tạo product
+
                 product = Product.objects.create(owner=supplier, **product_data)
 
-                # Lưu ảnh sản phẩm
+                product.active = False
+                product.save()
+
+
                 if product_images:
                     ProductImage.objects.bulk_create([
                         ProductImage(product=product, image=image, alt=f"Image for {product.name}")
@@ -204,7 +202,6 @@ class SupplierRegister(serializers.ModelSerializer):
                 return {"user": supplier, "product": product}
 
         except Exception as e:
-            # Tùy logic có thể raise ValidationError để DRF trả về 400
             from rest_framework.exceptions import ValidationError
             raise ValidationError({"error": f"Tạo supplier/product thất bại: {str(e)}"})
 
@@ -242,7 +239,7 @@ class FollowSerializer(serializers.ModelSerializer):
             "user_type": instance.follower.user_type,
         }
 
-        # Thêm thông tin chi tiết của followee
+
         data["followee"] = {
             "id": instance.followee.id,
             "name": f"{instance.followee.first_name} {instance.followee.last_name}".strip(),

@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404
+from django.db.models import Avg, Count
 from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.decorators import action
 from accounts.perms import IsSupplier
@@ -26,6 +27,7 @@ from .serializers import (CategorySerializer,
                         ProductListSerializer,
                         ProductDetailSerializer,
                         )
+from checkout.serializers import RateSerializer
 from .models import Category
 from rest_framework.response import Response
 from django.db.models import Q
@@ -36,10 +38,6 @@ class CategoryViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveA
     queryset = Category.objects.all()
 
     serializer_class = CategorySerializer
-    # def get_serializer_class(self):
-    #     if self.action == 'retrieve':
-    #         return CategoryDetailSerializer
-    #     return CategoryListSerializer
 
 class OptionViewSet(viewsets.ReadOnlyModelViewSet):  
     queryset = Option.objects.all()
@@ -50,6 +48,8 @@ class OptionValueViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = OptionValue.objects.all()
     serializer_class = OptionValueGetSerializer
     permission_classes = [permissions.AllowAny]
+
+
 
 
 class ProductViewSet(viewsets.GenericViewSet,
@@ -63,10 +63,17 @@ class ProductViewSet(viewsets.GenericViewSet,
     pagination_class = ProductPaginator
 
     def get_queryset(self):
-        return Product.objects.filter(active=True, is_deleted=False)
+        return (
+            Product.objects
+            .filter(active=True, is_deleted=False)
+            .annotate(
+                rate_count=Count("rates", filter=Q(rates__is_spam=False), distinct=True),
+                rate_avg=Avg("rates__rate", filter=Q(rates__is_spam=False))
+            )
+        )
 
     def get_serializer_class(self):
-        if self.action in ['create','update', 'partial_update']:
+        if self.action in ['create','partial_update']:
             return ProductSerializer
         elif self.action == 'option_setup':
             return ProductOptionSetupSerializer
@@ -75,9 +82,9 @@ class ProductViewSet(viewsets.GenericViewSet,
             return ProductVariantSerializer
         elif self.action=='get_options':
             return ProductOptionSerializer
-        elif self.action in ['my_products','list']:
+        elif self.action in ['my_products','list','deleted_products','shop_products']:
             return ProductListSerializer
-        elif self.action =='retrieve':
+        elif self.action in ['retrieve', 'update']:
             return ProductDetailSerializer
         
         return ProductSerializer  
@@ -116,20 +123,24 @@ class ProductViewSet(viewsets.GenericViewSet,
         return Response(serializer.data)
     
     def create(self, request):
+        print(request.data)
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            product = serializer.save(owner=request.user)
+            # print(serializer.data)
+            product = serializer.save()
             return Response(    
                 {"message": "Product created successfully!", "product_id": product.id},
                 status=status.HTTP_201_CREATED
             )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
     
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
 
         data = request.data.copy()
+        print(data)
         if 'owner' in data:
             data.pop('owner')
 
@@ -185,7 +196,7 @@ class ProductViewSet(viewsets.GenericViewSet,
         serializer = ProductVariantSerializer(
             data=variants_data,
             many=True,
-            context={"product": product}  # 🔑 phải truyền product vào đây
+            context={"product": product} 
         )
         serializer.is_valid(raise_exception=True)
         variants = serializer.save()
@@ -243,6 +254,33 @@ class ProductViewSet(viewsets.GenericViewSet,
             return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['get'], url_path=r'shop-products/(?P<shop_id>\d+)')
+    def shop_products(self, request, shop_id=None):
+        products = Product.objects.filter(is_deleted=False, owner_id=shop_id)
+        page = self.paginate_queryset(products)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(products, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['get'], url_path='rates')
+    def get_rate(self, request, pk=None):
+        product = self.get_object()
+
+
+        rates = product.rates.select_related("owner", "order_detail").all()
+
+
+        page = self.paginate_queryset(rates)
+        if page is not None:
+            serializer = RateSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = RateSerializer(rates, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     
 
 class ProductVariantViewSet(viewsets.GenericViewSet,

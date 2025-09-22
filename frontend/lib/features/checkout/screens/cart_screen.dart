@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:frontend/features/checkout/services/checkout_service.dart';
+import 'package:frontend/features/user/provider/user_provider.dart';
+import 'package:provider/provider.dart';
 
 import 'order_form_screen.dart'; // import OrderFormScreen
 
@@ -16,26 +18,37 @@ class _MyCartItemsScreenState extends State<MyCartItemsScreen> {
   bool _isLoading = true;
 
   final Map<int, Timer?> _updateTimers = {};
-
   final Map<int, bool> _selectedItems = {};
+
 
   @override
   void initState() {
     super.initState();
-    _loadCartItems();
+    _checkLoginAndLoad();
   }
 
-  Future<void> _loadCartItems() async {
+    Future<void> _checkLoginAndLoad() async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+    if (!userProvider.isLoggedIn) {
+      // Người dùng chưa đăng nhập
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+
+    // Nếu đã đăng nhập, load giỏ hàng
     final items = await CheckoutService.getCartItems();
     setState(() {
       _myCartItems = items;
-
       _isLoading = false;
       for (var item in items) {
         _selectedItems[item['id']] = false;
       }
     });
   }
+
 
   void _scheduleUpdate(int itemId, int newQuantity) {
     _updateTimers[itemId]?.cancel();
@@ -79,10 +92,9 @@ class _MyCartItemsScreenState extends State<MyCartItemsScreen> {
       final baseProduct = variant["product"];
 
       return {
-        "variant":
-            variant, // giữ nguyên variant (chứa id, price, stock, option_values…)
-        "base_product": baseProduct, // giữ thêm base product (name, image…)
-        "quantity": item["quantity"], // số lượng
+        "variant": variant,
+        "base_product": baseProduct,
+        "quantity": item["quantity"],
       };
     }).toList();
 
@@ -96,145 +108,158 @@ class _MyCartItemsScreenState extends State<MyCartItemsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (!userProvider.isLoggedIn || _myCartItems.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text("Giỏ hàng")),
+        body: const Center(
+          child: Text(
+            "Bạn chưa có đơn hàng nào",
+            style: TextStyle(fontSize: 16),
+          ),
+        ),
+      );
+    }
+
+    // Nếu đã đăng nhập và có sản phẩm trong giỏ
     return Scaffold(
       appBar: AppBar(title: const Text("Danh sách sản phẩm")),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: _myCartItems.length,
-                    itemBuilder: (context, index) {
-                      final p = _myCartItems[index];
-                      final variant = p['product'];
-                      final baseProduct = variant['product'];
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              itemCount: _myCartItems.length,
+              itemBuilder: (context, index) {
+                final p = _myCartItems[index];
+                final variant = p['product'];
+                final baseProduct = variant['product'];
 
-                      return Card(
-                        margin: const EdgeInsets.all(8),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Row(
+                return Card(
+                  margin: const EdgeInsets.all(8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Checkbox(
+                          value: _selectedItems[p['id']] ?? false,
+                          onChanged: (val) {
+                            setState(() {
+                              _selectedItems[p['id']] = val ?? false;
+                            });
+                          },
+                        ),
+                        Image.network(
+                          (baseProduct['image']?.isNotEmpty ?? false)
+                              ? baseProduct['image']
+                              : "https://via.placeholder.com/100",
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Checkbox(
-                                value: _selectedItems[p['id']] ?? false,
-                                onChanged: (val) {
-                                  setState(() {
-                                    _selectedItems[p['id']] = val ?? false;
-                                  });
-                                },
+                              Text(
+                                baseProduct['name'] ?? 'Không tên',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              Image.network(
-                                (baseProduct['image']?.isNotEmpty ?? false)
-                                    ? baseProduct['image']
-                                    : "https://via.placeholder.com/100",
-                                width: 80,
-                                height: 80,
-                                fit: BoxFit.cover,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      baseProduct['name'] ?? 'Không tên',
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Wrap(
-                                      spacing: 4,
-                                      runSpacing: 2,
-                                      children:
-                                          (variant['option_values'] as List)
-                                              .map(
-                                                (opt) => Container(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        vertical: 2,
-                                                        horizontal: 4,
-                                                      ),
-                                                  decoration: BoxDecoration(
-                                                    border: Border.all(
-                                                      color:
-                                                          Colors.grey.shade300,
-                                                    ),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          4,
-                                                        ),
-                                                  ),
-                                                  child: Text(
-                                                    opt['value'],
-                                                    style: const TextStyle(
-                                                      fontSize: 11,
-                                                    ),
-                                                  ),
-                                                ),
-                                              )
-                                              .toList(),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      "Giá: ${variant['price']}đ",
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.green,
-                                      ),
-                                    ),
-                                    Text(
-                                      "Kho: ${variant['stock']}",
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                    Row(
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.remove),
-                                          onPressed: () =>
-                                              _changeQuantity(index, -1),
+                              const SizedBox(height: 4),
+                              Wrap(
+                                spacing: 4,
+                                runSpacing: 2,
+                                children: (variant['option_values'] as List)
+                                    .map(
+                                      (opt) => Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 2,
+                                          horizontal: 4,
                                         ),
-                                        Text(
-                                          "${p['quantity']}",
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                            color: Colors.grey.shade300,
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          opt['value'],
                                           style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
+                                            fontSize: 11,
                                           ),
                                         ),
-                                        IconButton(
-                                          icon: const Icon(Icons.add),
-                                          onPressed: () =>
-                                              _changeQuantity(index, 1),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                                      ),
+                                    )
+                                    .toList(),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "Giá: ${variant['price']}đ",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.green,
                                 ),
+                              ),
+                              Text(
+                                "Kho: ${variant['stock']}",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.remove),
+                                    onPressed: () =>
+                                        _changeQuantity(index, -1),
+                                  ),
+                                  Text(
+                                    "${p['quantity']}",
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.add),
+                                    onPressed: () => _changeQuantity(index, 1),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
                         ),
-                      );
-                    },
+                      ],
+                    ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: ElevatedButton(
-                    onPressed: _goToOrderForm,
-                    child: const Text("Tiếp tục đặt hàng"),
-                  ),
-                ),
-              ],
+                );
+              },
             ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: ElevatedButton(
+              onPressed: _goToOrderForm,
+              child: const Text("Tiếp tục đặt hàng"),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

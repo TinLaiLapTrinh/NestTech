@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'package:frontend/core/configs/api_config.dart';
 import 'package:frontend/core/configs/headers.dart';
 import 'package:frontend/features/location/models/location_model.dart';
+import 'package:geolocator/geolocator.dart' as geo;
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
+import 'package:turf/line_segment.dart';
 
 class LocationService {
   static Future<List<Province>> getProvinces() async {
@@ -65,7 +67,7 @@ class LocationService {
       final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.getShippingRoute)
           .replace(
             queryParameters: {
-              "origin": originRegion.toString(), 
+              "origin": originRegion.toString(),
               "destination": destinationRegion.toString(),
             },
           );
@@ -74,7 +76,7 @@ class LocationService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return data; 
+        return data;
       } else {
         throw Exception(
           'Failed to load shipping route: ${response.statusCode}',
@@ -182,5 +184,61 @@ class LocationService {
       }
     }
     return null;
+  }
+
+  Future<RouteInfo> getRouteFromMapbox(
+    Position start,
+    Position end,
+    String accessToken,
+  ) async {
+    final url =
+        "https://api.mapbox.com/directions/v5/mapbox/driving/${start.lng},${start.lat};${end.lng},${end.lat}?geometries=geojson&access_token=$accessToken";
+
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final coords = data['routes'][0]['geometry']['coordinates'] as List;
+      final distance = (data['routes'][0]['distance'] as num).toDouble();
+      final duration = (data['routes'][0]['duration'] as num).toDouble();
+
+      final routePositions = coords.map((c) => Position(c[0], c[1])).toList();
+
+      return RouteInfo(
+        route: routePositions,
+        distance: distance,
+        duration: duration,
+      );
+    } else {
+      throw Exception("Failed to load route");
+    }
+  }
+
+  Future<geo.Position> _getCurrentLocation() async {
+    bool serviceEnabled;
+    geo.LocationPermission permission;
+
+    // Kiểm tra service GPS
+    serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      throw Exception('GPS chưa bật');
+    }
+
+    // Kiểm tra quyền
+    permission = await geo.Geolocator.checkPermission();
+    if (permission == geo.LocationPermission.denied) {
+      permission = await geo.Geolocator.requestPermission();
+      if (permission == geo.LocationPermission.denied) {
+        throw Exception('Quyền truy cập vị trí bị từ chối');
+      }
+    }
+
+    if (permission == geo.LocationPermission.deniedForever) {
+      throw Exception('Quyền truy cập vị trí bị chặn vĩnh viễn');
+    }
+
+    // Lấy vị trí
+    return await geo.Geolocator.getCurrentPosition(
+      desiredAccuracy: geo.LocationAccuracy.high,
+    );
   }
 }

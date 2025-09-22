@@ -25,11 +25,30 @@ class User(AbstractUser):
     class Meta:
         db_table = "user"
 
+class AuditLog(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    cccd_hash = models.CharField(max_length=64, db_index=True,unique=True) 
+    cccd_enc = models.TextField()
+    verified = models.BooleanField(default=False)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
 class SupplierApproved(User):
 
     class Meta:
         proxy = True
 
+class FcmToken(models.Model):
+    token = models.CharField(max_length=255)
+    users = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="fcm_tokens",
+        blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("token",)  
 class Follow(BaseModel):
     follower = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="following", 
                                  on_delete=models.CASCADE, 

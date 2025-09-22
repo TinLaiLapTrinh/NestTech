@@ -1,21 +1,68 @@
 from django.shortcuts import render
+from django.conf import settings
+from rest_framework.views import APIView
 from rest_framework import mixins, parsers, status, viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.decorators import action
+from django.utils.decorators import method_decorator
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated,AllowAny
-from accounts.perms  import IsCustomer, IsSupplier
+from django.views.decorators.csrf import csrf_exempt
+from utils.tasks import check_spam_rate
+from utils.checker import check_spam
+from .service.statistics import stats_for_supplier, stats_for_shipper  
+from .spam_checker.spam_checker import check_spam 
+
+from django.http import HttpResponse
+from accounts.perms  import IsCustomer, IsSupplier, IsDeliveryPerson, IsSupplierOrDeliveryPerson
 from utils.choice import UserType
-from checkout.perms import IsShoppingCartOwner, IsOrderOwner, IsDeliveryPerson, IsOrderRequest
+from checkout.perms import IsShoppingCartOwner, IsOrderDetailOwner, IsOrderOwner,IsDeliveryPersonOrder, IsOrderRequest
 from .models import ShoppingCart, ShoppingCartItem, Order, OrderDetail
 from .serializers import (ShoppingCartItemSerializer, ShoppingCartListItemSerializer,
                            ShoppingCartSerializer,OrderSerializer,
-                           OrderDetailSerializer,OrderListSerializer, OrderRequestSerializer)
+                           OrderDetailSerializer,OrderListSerializer,
+                             OrderRequestSerializer, OrderDetailConfirmImageSerializer,
+                             RateSerializer)
 from utils.choice import DeliveryStatus
+import requests
+from time import time
+from datetime import datetime
+import json
+import hmac
+import hashlib
+import uuid
+import urllib.parse
+import urllib.request
+from .paginators import ShoppingCartItemPaginator, OrderDetailItemPaginator
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from django.conf import settings
+from .models import Order, PaymentStatus, PaymentMethod
+from utils.momo_service import create_momo_payment, generate_qr_from_url
 
-from .paginators import ShoppingCartItemPaginator
 
+AKISMET_API_KEY = "68405bed0dbc"
+BLOG_URL = "127.0.0.1:8000"
 
+def check_spam_with_akismet(rate):
+    data = {
+        "blog": BLOG_URL,
+        "user_ip": rate.ip_address,
+        "user_agent": "Django/RestFramework",
+        "comment_type": "review",
+        "comment_author": rate.owner.username,
+        "comment_content": rate.content
+    }
+    response = requests.post(
+        f"https://{AKISMET_API_KEY}.rest.akismet.com/1.1/comment-check",
+        data=data
+    )
+    is_spam = response.text.lower() == "true"
+    print(f"Review ID {rate.id} spam check result: {is_spam}, value {rate.content}")
+    return is_spam
 
 class ShoppingCartViewSet(viewsets.GenericViewSet,
                           mixins.CreateModelMixin):
@@ -108,16 +155,25 @@ class ShoppingCartViewSet(viewsets.GenericViewSet,
         return Response({'message': 'Xóa sản phẩm thành công'}, status=status.HTTP_204_NO_CONTENT)
     
 class OrderDetailViewSet(viewsets.GenericViewSet,mixins.RetrieveModelMixin, mixins.ListModelMixin, mixins.UpdateModelMixin):
-
+    pagination_class = OrderDetailItemPaginator
 
     def get_permissions(self):
         if self.action in ["update", "partial_update"]:
-            return [IsOrderRequest()]  # Chỉ cần permission này thôi
-        return [IsSupplier()]
+            return [(IsOrderRequest | IsDeliveryPerson)()]
+        if self.action == 'upload_confirm_img':
+            return [IsDeliveryPerson()]
+        if self.action == 'rate_product':
+            return[IsOrderDetailOwner()]
+        return [AllowAny()]
     
     def get_serializer_class(self):
-        if self.action in ['update','partial_update']:
-            return OrderDetailSerializer     
+        if self.action in ['update','partial_update','list','retrieve']:
+            return OrderDetailSerializer    
+        if self.action == 'upload_confirm_img':
+            return OrderDetailConfirmImageSerializer 
+        if self.action == 'rate_product':
+            return RateSerializer
+            
         return OrderRequestSerializer
     
     def get_queryset(self):
@@ -131,20 +187,44 @@ class OrderDetailViewSet(viewsets.GenericViewSet,mixins.RetrieveModelMixin, mixi
             return OrderDetail.objects.filter(product__product__owner=user)
 
         if user.user_type == UserType.DELIVER_PERSON:
-            # Lấy các order detail mà shipper này đang được gán
+            
             return OrderDetail.objects.filter(delivery_person=user)
+        
+        if user.user_type == UserType.CUSTOMER:
 
-        # Các user loại khác thì không thấy gì
+            return OrderDetail.objects.filter(order__owner=user)
+
         return OrderDetail.objects.none()
 
     def list(self, request):
         search = request.query_params.get("search")
         delivery_status = request.query_params.get("delivery_status")
+        hide_done = request.query_params.get("hide_done")
+
+        # Chuyển hide_done thành boolean
+        if hide_done is not None:
+            hide_done = hide_done.lower() == "true"
+
+        # Lấy queryset cơ bản và select_related để tránh N+1 query
         queryset = self.get_queryset().select_related('product', 'order')
+
+        # Loại bỏ các đơn đã giao hoặc đã huỷ nếu hide_done = True
+        if hide_done:
+            queryset = queryset.exclude(delivery_status__in=["delivered", "cancelled"])
+
+        # Lọc theo trạng thái nếu có
         if delivery_status:
-            queryset = queryset.filter(
-                delivery_status = delivery_status
-            )
+            queryset = queryset.filter(delivery_status=delivery_status)
+
+        # Lọc theo từ khóa search nếu có
+        if search:
+            queryset = queryset.filter(product__product__name__icontains=search)
+
+        # Phân trang
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
@@ -155,9 +235,70 @@ class OrderDetailViewSet(viewsets.GenericViewSet,mixins.RetrieveModelMixin, mixi
         print("VIEWSET RESPONSE:", response.data)
         return response
 
+    @action(detail=True, methods=['post'], url_path='delivered')
+    def upload_confirm_img(self, request, pk=None):
+        order_detail = self.get_object()
 
+        serializer = OrderDetailConfirmImageSerializer(
+            data=request.data,
+            context={"order": order_detail}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save(order=order_detail)
 
+        return Response(
+            {
+                "message": "Xác nhận giao hàng thành công!",
+                "order": OrderDetailSerializer(order_detail).data
+            },
+            status=status.HTTP_201_CREATED
+        )
     
+
+    @action(detail=True, methods=['post'], url_path='rate-product')
+    def rate_product(self, request, pk=None):
+        order_detail = self.get_object()
+
+        if hasattr(order_detail, "rate"):
+            return Response(
+                {"message": "Đơn hàng này đã được đánh giá rồi."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        rate = serializer.save(
+            order_detail=order_detail,
+            product=order_detail.product.product, 
+            owner=request.user,
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+
+        try:
+            results = check_spam([rate.content])   # lấy nội dung đánh giá để check
+            task1_label = results[rate.content]["task1"]
+            task2_label = results[rate.content]["task2"]
+
+
+            is_spam = (task1_label == "spam") or (task2_label.startswith("spam"))
+            rate.is_spam = is_spam
+            print(f"Đánh giá rating là:{is_spam}")
+            rate.save(update_fields=["is_spam"])
+        except Exception as e:
+            # Nếu có lỗi khi check spam, mặc định không đánh dấu spam
+            print("Spam checker error:", str(e))
+            rate.is_spam = False
+            rate.save(update_fields=["is_spam"])
+        # ================================================
+
+        return Response(
+            {
+                "message": "Đánh giá thành công!",
+                "rate": RateSerializer(rate).data
+            },
+            status=status.HTTP_201_CREATED
+        )
 
     
 class OrderViewSet(viewsets.GenericViewSet,
@@ -184,27 +325,70 @@ class OrderViewSet(viewsets.GenericViewSet,
     def get_permissions(self):
         if self.action == 'create':
             return [IsCustomer()]
-        if self.action == 'cancel_detail_order':
+        if self.action in ["cancel_detail_order", "get_payment_status"]:
             return [IsOrderOwner()]
         return [AllowAny()]
 
     def perform_create(self, serializer):
-        """Hook để gắn owner cho order"""
-        serializer.save(owner=self.request.user)
+
+        return serializer.save(owner=self.request.user)
 
     def create(self, request, *args, **kwargs):
-        print(self.request.data)
-        """Custom response JSON"""
         serializer = self.get_serializer(
             data=request.data,
-            context={'owner': request.user}  
-            )
+            context={'owner': request.user}
+        )
         serializer.is_valid(raise_exception=True)
         order = self.perform_create(serializer)
+
+
+        if order.payment_method == PaymentMethod.MOMO:
+            momo_response = create_momo_payment(
+                amount=str(int(order.total)),
+                order_id=order.id,
+                order_info=f"Thanh toán đơn hàng {order.id}"
+            )
+
+            if momo_response.get("resultCode") == 0:
+                pay_url = momo_response.get("payUrl")
+                qr_code_base64 = generate_qr_from_url(pay_url)
+                order.payment_status = "pending"
+                order.save()
+            else:
+                pay_url = None
+                qr_code_base64 = None
+        else:
+            # COD thì tự động thành công
+            order.payment_status = "paid"
+            order.save()
+            momo_response = {}
+            pay_url = None
+            qr_code_base64 = None
+
         return Response(
-            {"message": "order created successfully!", "order_id": serializer.instance.id},
+            {
+                "message": "Order created successfully!",
+                "order_id": order.id,
+                "payment_method": order.payment_method,
+                "payment_status": order.payment_status,
+                "payUrl": pay_url,
+                "qrCodeImage": qr_code_base64,
+                "momo_response": momo_response
+            },
             status=status.HTTP_201_CREATED
         )
+    
+    @action(detail=True, methods=['get'], url_path='payment-status')
+    def get_payment_status(self,request,pk=None):
+        order = self.get_object()
+        return Response(
+            {
+                "payment_status":order.payment_status
+            },
+            status=status.HTTP_200_OK
+        )
+    
+
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
@@ -217,7 +401,7 @@ class OrderViewSet(viewsets.GenericViewSet,
             return Response({'error': 'Chi tiết đơn hàng không tồn tại'},
                             status=status.HTTP_404_NOT_FOUND)
 
-        # Nếu đã giao xong thì không cho hủy
+
         if detail.status in [DeliveryStatus.DELIVERED, DeliveryStatus.REFUNDED]:
             return Response({'error': 'Đơn hàng đã hoàn tất, không thể hủy.'},
                             status=status.HTTP_400_BAD_REQUEST)
@@ -229,3 +413,55 @@ class OrderViewSet(viewsets.GenericViewSet,
                         'detail_id': detail.id,
                         'status': detail.status},
                         status=status.HTTP_200_OK)
+    
+@api_view(['POST'])
+def momo_ipn(request):
+    data = request.data
+    order_id = data.get("orderId")  
+    result_code = data.get("resultCode")
+
+    try:
+        real_order_id = order_id.split("_")[0]  # lấy id gốc từ orderId
+        order = Order.objects.get(id=real_order_id)
+    except Order.DoesNotExist:
+        return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    if result_code == 0:  # thanh toán thành công
+        order.payment_status = PaymentStatus.PAID
+        order.save()
+    else:
+        order.payment_status = PaymentStatus.FAILED
+        order.save()
+
+    return Response({"message": "IPN received"}, status=status.HTTP_200_OK)
+
+@csrf_exempt
+def momo_return(request):
+    result_code = request.GET.get("resultCode")
+    order_id = request.GET.get("orderId")
+    message = request.GET.get("message")
+
+
+    if result_code == "0":
+        return HttpResponse(f"Thanh toán đơn hàng {order_id} thành công!")
+    else:
+        return HttpResponse(f"Thanh toán thất bại: {message}")
+    
+
+class DashboardStatsView(APIView):
+    permission_classes = [IsSupplierOrDeliveryPerson]
+
+    def get(self, request):
+        user = request.user
+
+        if user.user_type == UserType.SUPPLIER:
+            data = stats_for_supplier(user)
+        elif user.user_type == UserType.DELIVER_PERSON:
+            data = stats_for_shipper(user)
+        else:
+            return Response(
+                {"detail": "Chỉ SUPPLIER hoặc DELIVER_PERSON mới được phép."},
+                status=403
+            )
+
+        return Response(data)

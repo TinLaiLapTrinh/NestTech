@@ -3,13 +3,13 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:frontend/core/configs/api_config.dart';
 import 'package:frontend/core/configs/headers.dart';
+import 'package:frontend/features/user/models/user_model.dart';
 import 'package:http/http.dart' as http;
 
-import '../models/user_register_model.dart';
 
 class UserProvider extends ChangeNotifier {
   UserModel? _currentUser;
-
+  
   UserModel? get currentUser => _currentUser;
 
   bool get isLoggedIn => _currentUser != null;

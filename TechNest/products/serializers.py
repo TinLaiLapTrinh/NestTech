@@ -5,7 +5,7 @@ from utils.serializers import ImageSerializer
 from .models import (Product, ProductImage,ProductStatus,
                      ProductVariant,Option,
                      OptionValue,VariantOptionValue,
-                     Category, OptionValueImage)
+                     Category, OptionValueImage, Descriptions)
 from checkout.models import OrderDetail
 from itertools import product as cartesian_product
 from django.db import transaction
@@ -22,14 +22,20 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ['id', 'type', 'descriptions']
     
+class ProductDescriptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Descriptions
+        fields = "__all__"
 
     
 class ProductSerializer(serializers.ModelSerializer):
-   
-    images = ImageSerializer(many=True, read_only = True)
+    images = ImageSerializer(many=True, read_only=True)
     upload_images = serializers.ListField(
-        child=serializers.ImageField(), write_only=True, required=True
-        )
+        child=serializers.ImageField(), 
+        write_only=True, 
+        required=True
+    )
+    descriptions = ProductDescriptionSerializer(many=True, read_only=True)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -37,47 +43,54 @@ class ProductSerializer(serializers.ModelSerializer):
             "id": instance.owner.id,
             "name": f"{instance.owner.first_name} {instance.owner.last_name}".strip(),
         }
-
-        data["category"]={
+        data["category"] = {
             "name": instance.category.type
         }
-
+        
         if instance.province:
             data["province"] = instance.province.full_name
-
         if instance.district:
             data["district"] = instance.district.full_name
-
         if instance.ward:
             data["ward"] = instance.ward.full_name
 
-        return data  
-    class Meta:
-        model = Product
-        fields = [
-            "id",
-            "name",
-            "status",
-            "owner",
-            "description",
-            "category",
-            "min_price",
-            "max_price",
-            "images",
-            "upload_images",
-            "province",
-            "district",
-            "ward",
-            "active"
-            
-        ]
-        extra_kwargs = {
-            'owner': {'read_only': True}, 
-            'status': {'read_only': True},
-            'active':{'read_only':True}
+        return data
 
-        }
-    
+    def to_internal_value(self, data):
+        data = data.copy()
+        raw = data.get("description_product")
+
+        if raw is not None:
+            # Case 1: Postman gửi chuỗi JSON (form-data)
+            if isinstance(raw, str):
+                try:
+                    parsed = json.loads(raw)
+                    if not isinstance(parsed, list):
+                        raise serializers.ValidationError({
+                            "description_product": "Phải là mảng JSON"
+                        })
+                    self._description_product_data = parsed
+                except json.JSONDecodeError:
+                    raise serializers.ValidationError({
+                        "description_product": "Không phải JSON hợp lệ"
+                    })
+
+            # Case 2: Flutter gửi JSON chuẩn (list object)
+            elif isinstance(raw, list):
+                self._description_product_data = raw
+
+            else:
+                raise serializers.ValidationError({
+                    "description_product": "Kiểu dữ liệu không hợp lệ"
+                })
+
+            # Xóa để không đụng field mặc định
+            del data["description_product"]
+        else:
+            self._description_product_data = []
+
+        return super().to_internal_value(data)
+
     def validate(self, data):
         name = (data.get('name') or getattr(self.instance, 'name', '')).strip()
         description = (data.get('description') or getattr(self.instance, 'description', '')).strip()
@@ -88,34 +101,50 @@ class ProductSerializer(serializers.ModelSerializer):
         province = data.get('province') or getattr(self.instance, 'province', None)
         district = data.get('district') or getattr(self.instance, 'district', None)
         ward = data.get('ward') or getattr(self.instance, 'ward', None)
+        description_product = getattr(self, "_description_product_data", [])
 
-        # Lấy lại object trong DB để so sánh quan hệ
+        print(f"Kết quả trong serializer: {description_product}")
+
+        for i, item in enumerate(description_product):
+            if not isinstance(item, dict):
+                raise serializers.ValidationError({
+                    "description_product": f"Mục {i+1} phải là object"
+                })
+            if 'title' not in item or not item['title'].strip():
+                raise serializers.ValidationError({
+                    "description_product": f"Mục {i+1} phải có title không rỗng"
+                })
+            if 'content' not in item or not item['content'].strip():
+                raise serializers.ValidationError({
+                    "description_product": f"Mục {i+1} phải có content không rỗng"
+                })
+            
+        
+        data['description_product'] = description_product
+
+        # ... các validation khác giữ nguyên ...
         ward_located = Ward.objects.filter(code=getattr(ward, 'code', None)).select_related("district__province").first() if ward else None
         district_located = District.objects.filter(code=getattr(district, 'code', None)).select_related("province").first() if district else None
 
-        # Validate các trường text
         if not name or len(name) < 3:
             raise serializers.ValidationError({"name": "Tên sản phẩm không được để trống và phải ≥3 ký tự."})
         if not description:
             raise serializers.ValidationError({"description": "Mô tả sản phẩm không được để trống."})
 
-        # Validate giá
         if max_price is not None and min_price is not None and max_price < min_price:
             raise serializers.ValidationError({"mean-price": "Khoảng giá trị không hợp lệ."})
 
-        # Validate category
         if not category or not Category.objects.filter(id=category.id).exists():
             raise serializers.ValidationError({"category": "Loại sản phẩm không tồn tại."})
 
-        # Validate địa chỉ (province - district - ward phải khớp nhau)
         if ward and (not ward_located or not district or ward_located.district != district):
             raise serializers.ValidationError({"location": "Xã/Phường không thuộc Quận/Huyện đã chọn."})
 
         if district and (not district_located or not province or district_located.province != province):
             raise serializers.ValidationError({"location": "Quận/Huyện không thuộc Tỉnh/Thành đã chọn."})
+        
 
         return data
-
 
     def validate_upload_images(self, value):
         if not value:
@@ -137,16 +166,24 @@ class ProductSerializer(serializers.ModelSerializer):
                 )
         return value
 
-        
     def create(self, validated_data):
         upload_images = validated_data.pop("upload_images", [])
-        owner =  self.context["request"].user
-        validated_data["active"] = False
-
+        descriptions_data = validated_data.pop("description_product", [])
+        owner = self.context["request"].user
+        
         validated_data["owner"] = owner
+        validated_data["active"] = False
         
         product_instance = Product.objects.create(**validated_data)
 
+        for desc in descriptions_data:
+            Descriptions.objects.create(
+                product=product_instance,
+                title=desc['title'].strip(),
+                content=desc['content'].strip()
+            )
+
+        # Tạo images
         for image_file in upload_images:
             ProductImage.objects.create(
                 image=image_file,
@@ -155,23 +192,47 @@ class ProductSerializer(serializers.ModelSerializer):
             )
 
         return product_instance
-    
+
     def update(self, instance, validated_data):
         upload_images = validated_data.pop("upload_images", None)
+        descriptions_data = validated_data.pop("description_product", None)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
         if upload_images:
-            
             for image_file in upload_images:
                 ProductImage.objects.create(
                     image=image_file,
                     alt=f"Image for {instance.name}",
                     product=instance,
                 )
+
+        if descriptions_data is not None:
+            instance.descriptions.all().delete()
+            for desc in descriptions_data:
+                Descriptions.objects.create(
+                    product=instance,
+                    title=desc['title'].strip(),
+                    content=desc['content'].strip()
+                )
+
         return instance
+
+    class Meta:
+        model = Product
+        fields = [
+            "id", "name", "status", "owner", "description", "category",
+            "min_price", "max_price", "images", "upload_images", "province",
+            "district", "ward", "active", "descriptions"
+            # LOẠI BỎ description_product khỏi fields
+        ]
+        extra_kwargs = {
+            'owner': {'read_only': True}, 
+            'status': {'read_only': True},
+            'active': {'read_only': True}
+        }
     
 class OptionGetSerializer(serializers.ModelSerializer):
     option_value = serializers.SerializerMethodField()
@@ -275,7 +336,7 @@ class OptionSerializer(serializers.ModelSerializer):
         option = super().create(validated_data)
         
         for val in values_data:
-            value_payload = {"value": val, "option": option.id}  # thêm option id vào payload
+            value_payload = {"value": val, "option": option.id}
             value_serializer = OptionValueSerializer(
                 data=value_payload
             )
@@ -398,8 +459,6 @@ class VariantGeneratorSerializer(serializers.Serializer):
         return generated_variants
 
     
-
-
 class ProductVariantSerializer(serializers.ModelSerializer):
     option_values = serializers.ListField(
         child=serializers.IntegerField(), write_only=True
@@ -517,6 +576,8 @@ class ProductOptionSerializer(serializers.ModelSerializer):
         fields = ['id', 'type', 'values']
 
 class ProductListSerializer(serializers.ModelSerializer):
+    rate_count = serializers.IntegerField(read_only=True)
+    rate_avg = serializers.FloatField(read_only=True)
     images = ImageSerializer(many=True, read_only=True)
     sold_quantity = serializers.IntegerField(read_only=True)
     def to_representation(self, instance):
@@ -529,19 +590,27 @@ class ProductListSerializer(serializers.ModelSerializer):
             data["province"] = instance.province.full_name
         if instance.ward:
             data["ward"] = instance.ward.full_name
+
+        data["rate"] = {
+            "quantity": getattr(instance, "rate_count", 0),
+            "avg": getattr(instance, "rate_avg", 0.0),
+        }
+        data.pop("rate_count", None)
+        data.pop("rate_avg", None)
         return data
     class Meta:
         model = Product
         fields = [
             'id', 'name', 'status', 'description',
             'category', 'max_price', 'min_price', 'images',
-            'province', 'ward','sold_quantity'
+            'province', 'ward','sold_quantity',
+            "rate_count",
+            "rate_avg"
         ]
 
 class ProductVariantGetComponentSerializer(serializers.ModelSerializer):
     option_values = serializers.SerializerMethodField()
     
-
     class Meta:
         model = ProductVariant
         fields = ['id', 'price', 'stock', 'option_values']
@@ -553,10 +622,12 @@ class ProductVariantGetComponentSerializer(serializers.ModelSerializer):
         return OptionValueGetSerializer(values, many=True).data
 
 class ProductDetailSerializer(serializers.ModelSerializer):
+    rate_count = serializers.IntegerField(read_only=True)
+    rate_avg = serializers.FloatField(read_only=True)
     images = ImageSerializer(many=True, read_only=True)
+    descriptions = ProductDescriptionSerializer(many=True, read_only=True)
     variants = ProductVariantGetComponentSerializer(source='product_variants', many=True, read_only=True)
     options = OptionGetSerializer(source='product_options', many=True, read_only=True)
-
     owner = serializers.SerializerMethodField()
     category = serializers.CharField(source="category.type", read_only=True)
     price_range = serializers.SerializerMethodField()
@@ -568,14 +639,16 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'id', 'name', 'status', 'description',
             'owner', 'category',
             'price_range', 'images', 'location',
-            'variants', 'options', 'sold_quantity'
+            'variants', 'options', 'sold_quantity',
+            "rate_count",
+            "rate_avg","descriptions",
         ]
 
     def get_owner(self, obj):
         return {
             "id": obj.owner.id,
             "name": obj.owner.first_name +" " + obj.owner.last_name,
-            
+            "avatar": obj.owner.avatar
         }
 
     def get_price_range(self, obj):
@@ -588,5 +661,10 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         return {
             "province": obj.province.name if obj.province else None,
             "ward": obj.ward.name if obj.ward else None
+        }
+    def get_rate(self, instance):
+        return {
+            "quantity": getattr(instance, "rate_count", 0),
+            "avg": getattr(instance, "rate_avg", 0.0)
         }
 

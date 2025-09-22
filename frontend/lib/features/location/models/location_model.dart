@@ -1,4 +1,5 @@
 import 'package:latlong2/latlong.dart';
+import 'package:turf/line_segment.dart';
 
 class Province {
   final String code;
@@ -124,5 +125,18 @@ class SelectedLocationResult {
     required this.province,
     required this.district,
     required this.ward,
+  });
+}
+
+
+class RouteInfo {
+  final List<Position> route;
+  final double distance; // meters
+  final double duration; // seconds
+
+  RouteInfo({
+    required this.route,
+    required this.distance,
+    required this.duration,
   });
 }

@@ -46,4 +46,27 @@ class DeliveryStatus(models.TextChoices):
 
     REFUNDED = "refunded", "Đã hoàn tiền"
 
-    
+class PaymentStatus:
+    PENDING = "pending"
+    PAID = "paid"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+    CHOICES = [
+        (PENDING, "Chờ thanh toán"),
+        (PAID, "Đã thanh toán"),
+        (FAILED, "Thanh toán thất bại"),
+        (CANCELLED, "Đã hủy"),
+    ]
+
+class PaymentMethod:
+    COD = "cod"
+    MOMO = "momo"
+
+    CHOICES = [
+        (COD, "Thanh toán khi nhận hàng"),
+        (MOMO, "momo"),
+    ]
+    @classmethod
+    def values(cls):
+        return [cls.COD, cls.MOMO]
