@@ -157,7 +157,6 @@ Nhà cung cấp có thể xem báo cáo chi tiết về doanh thu, sản phẩm 
 <li>Python 3.8+</li>
 <li>Flutter 3.0+</li>
 <li>MySQL 8.0+</li>
-<li>Node.js 14+ (cho một số dependencies)</li>
 </ul>
 
 ### Backend (Django)
