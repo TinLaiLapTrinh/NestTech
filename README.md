@@ -248,7 +248,6 @@ EXIT;
 python manage.py makemigrations
 python manage.py migrate
 python manage.py createsuperuser
-python manage.py loaddata initial_data.json  # Nếu có
 ```
 
 #### Bước 7: Chạy server
