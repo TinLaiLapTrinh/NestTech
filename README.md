@@ -444,22 +444,6 @@ python train_model/train_phobert.py
 
 Mô hình đạt độ chính xác trên 90% trên tập validation.
 
----
-
-## Đóng góp
-
-Chúng tôi hoan nghênh mọi đóng góp cho dự án. Vui lòng làm theo các bước sau:
-
-<ol>
-<li>Fork repository</li>
-<li>Tạo branch mới (<code>git checkout -b feature/AmazingFeature</code>)</li>
-<li>Commit changes (<code>git commit -m 'Add some AmazingFeature'</code>)</li>
-<li>Push to branch (<code>git push origin feature/AmazingFeature</code>)</li>
-<li>Tạo Pull Request</li>
-</ol>
-
----
-
 ## License
 
 Dự án được phát hành dưới giấy phép MIT. Xem file `LICENSE` để biết thêm chi tiết.
@@ -478,8 +462,8 @@ Dự án được phát hành dưới giấy phép MIT. Xem file `LICENSE` để
 
 <div align="center">
 
-### Được phát triển với ❤️ bởi TechNest Team
+### Được phát triển với ❤️ bởi TÔI
 
-<p>Nếu dự án hữu ích, hãy cho chúng tôi một ⭐ trên GitHub!</p>
+<p>Nếu dự án hữu ích, hãy cho tôi một ⭐ trên GitHub!</p>
 
 </div>
