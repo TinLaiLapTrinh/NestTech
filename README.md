@@ -164,8 +164,7 @@ Nhà cung cấp có thể xem báo cáo chi tiết về doanh thu, sản phẩm 
 #### Bước 1: Clone repository
 
 ```bash
-git clone https://github.com/yourusername/technest.git
-cd technest/backend
+git clone https://github.com/yourusername/technest.git](https://github.com/TinLaiLapTrinh/NestTech.git
 ```
 
 #### Bước 2: Tạo môi trường ảo
